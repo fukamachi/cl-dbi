@@ -18,10 +18,12 @@
   :version "0.1-SNAPSHOT"
   :author "Eitarow Fukamachi"
   :license "LLGPL"
-  :depends-on (:cl-annot)
+  :depends-on (:cl-syntax)
   :components ((:module "src"
                 :components
-                ((:file "cl-dbi"))))
+                ((:file "dbi" :depends-on ("connection"))
+                 (:file "driver" :depends-on ("connection"))
+                 (:file "connection"))))
   :description "Database independent interface for Common Lisp"
   :long-description
   #.(with-open-file (stream (merge-pathnames
