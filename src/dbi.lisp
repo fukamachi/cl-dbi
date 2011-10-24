@@ -6,7 +6,7 @@
 (in-package :cl-user)
 (defpackage dbi
   (:use :cl)
-  (:import-from :dbi.connection
+  (:import-from :dbi.driver
                 :prepare
                 :execute)
   (:export :prepare
