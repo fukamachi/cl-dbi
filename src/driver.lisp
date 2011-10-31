@@ -41,8 +41,8 @@
   (:documentation "Class that represents a prepared DB query."))
 
 @export
-(defmethod make-connection ((this <dbi-driver>) params &key name password)
-  (declare (ignore params name password))
+(defmethod make-connection ((this <dbi-driver>) params)
+  (declare (ignore params))
   (error "`make-connection' should be implemented in a subclass of `<dbi-driver>'."))
 
 @export
