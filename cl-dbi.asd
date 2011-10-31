@@ -24,7 +24,8 @@
   :components ((:module "src"
                 :components
                 ((:file "dbi" :depends-on ("driver"))
-                 (:file "driver"))))
+                 (:file "driver")
+                 (:file "error"))))
   :description "Database independent interface for Common Lisp"
   :long-description
   #.(with-open-file (stream (merge-pathnames
