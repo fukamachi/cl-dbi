@@ -46,13 +46,17 @@
   (error "`make-connection' should be implemented in a subclass of `<dbi-driver>'."))
 
 @export
+(defun list-all-drivers ()
+  (c2mop:class-direct-subclasses (find-class '<dbi-driver>)))
+
+@export
 (defun find-driver (driver-name)
   (find-if
    (lambda (class)
      (or (string= driver-name (class-name class))
          (string= (format nil "<DBI-DRIVER-~:(~A~)>" driver-name)
                   (class-name class))))
-   (c2mop:class-direct-subclasses (find-class '<dbi-driver>))))
+   (list-all-drivers)))
 
 @export
 (defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
