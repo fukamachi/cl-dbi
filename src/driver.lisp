@@ -5,7 +5,9 @@
 
 (in-package :cl-user)
 (defpackage dbi.driver
-  (:use :cl))
+  (:use :cl)
+  (:import-from :c2mop
+                :class-direct-subclasses))
 (in-package :dbi.driver)
 
 (cl-syntax:use-syntax :annot)
@@ -42,6 +44,15 @@
 (defmethod make-connection ((this <dbi-driver>) params &key name password)
   (declare (ignore params name password))
   (error "`make-connection' should be implemented in a subclass of `<dbi-driver>'."))
+
+@export
+(defun find-driver (driver-name)
+  (find-if
+   (lambda (class)
+     (or (string= driver-name (class-name class))
+         (string= (format nil "<DBI-DRIVER-~:(~A~)>" driver-name)
+                  (class-name class))))
+   (c2mop:class-direct-subclasses (find-class '<dbi-driver>))))
 
 @export
 (defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)

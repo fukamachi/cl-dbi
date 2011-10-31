@@ -19,7 +19,8 @@
   :author "Eitarow Fukamachi"
   :license "LLGPL"
   :depends-on (:cl-syntax
-               :cl-syntax-annot)
+               :cl-syntax-annot
+               :closer-mop)
   :components ((:module "src"
                 :components
                 ((:file "dbi" :depends-on ("driver"))
