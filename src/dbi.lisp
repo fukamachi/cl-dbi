@@ -16,6 +16,6 @@
 (cl-syntax:use-syntax :annot)
 
 @export
-(defun connect (dsn &key username password)
+(defun connect (dsn)
   ;; TODO
   )
