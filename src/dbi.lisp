@@ -6,6 +6,7 @@
 (in-package :cl-user)
 (defpackage dbi
   (:use :cl)
+  (:nicknames :cl-dbi)
   (:import-from :dbi.driver
                 :list-all-drivers
                 :find-driver
