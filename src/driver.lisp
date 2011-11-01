@@ -10,7 +10,9 @@
                 :regex-replace
                 :regex-replace-all)
   (:import-from :c2mop
-                :class-direct-subclasses))
+                :class-direct-subclasses)
+  (:import-from :dbi.error
+                :<dbi-error>))
 (in-package :dbi.driver)
 
 (cl-syntax:use-syntax :annot)
@@ -44,9 +46,10 @@
   (:documentation "Class that represents a prepared DB query."))
 
 @export
-(defmethod make-connection ((this <dbi-driver>) params)
-  (declare (ignore params))
-  (error "`make-connection' should be implemented in a subclass of `<dbi-driver>'."))
+(defmethod make-connection ((driver <dbi-driver>) params)
+  (declare (ignore driver params))
+  (error '<dbi-error>
+         :format-control "`make-connection' should be implemented in a subclass of `<dbi-driver>'."))
 
 @export
 (defun list-all-drivers ()
@@ -63,8 +66,9 @@
 
 @export
 (defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
-  (declare (ignore params))
-  (error "`execute-using-connection' should be implemented."))
+  (declare (ignore conn query params))
+  (error '<dbi-error>
+         :format-control "`execute-using-connection' should be implemented."))
 
 @export
 (defmethod prepare ((conn <dbi-connection>) (sql string))
