@@ -6,6 +6,9 @@
 (in-package :cl-user)
 (defpackage dbi.driver
   (:use :cl)
+  (:import-from :cl-ppcre
+                :regex-replace
+                :regex-replace-all)
   (:import-from :c2mop
                 :class-direct-subclasses))
 (in-package :dbi.driver)
@@ -77,7 +80,22 @@
    query
    params))
 
+@export
 (defmethod prepare-sql ((conn <dbi-connection>) (sql string))
   "Create a function that takes parameters, binds them into a query and returns SQL as a string."
-  ;; TODO
-  )
+  ;; TODO: improve efficiency.
+  (lambda (&rest params)
+    (reduce (lambda (sql v)
+              (ppcre:regex-replace "\\?" sql v))
+            (mapcar
+             (lambda (param)
+               (typecase param
+                 (string (concatenate 'string "'" (escape-sql param) "'"))
+                 (null "NULL")
+                 (t (princ-to-string param))))
+             params)
+            :initial-value sql)))
+
+@export
+(defmethod escape-sql ((conn <dbi-connection>) (sql string))
+  (ppcre:regex-replace-all "'" sql  "''"))
