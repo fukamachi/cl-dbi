@@ -7,15 +7,29 @@
 (defpackage dbi
   (:use :cl)
   (:import-from :dbi.driver
+                :list-all-drivers
+                :find-driver
+                :make-connection
                 :prepare
                 :execute)
-  (:export :prepare
+  (:export :list-all-drivers
+           :find-driver
+           :prepare
            :execute))
 (in-package :dbi)
 
 (cl-syntax:use-syntax :annot)
 
 @export
-(defun connect (dsn)
+(defun connect (driver-name &rest params &allow-other-keys)
+  (let ((driver (find-driver driver-name)))
+    (unless driver
+      (error 'simple-error
+             :format-control "Driver ~A is not found."
+             :format-arguments driver-name))
+    (apply #'make-connection driver params)))
+
+@export
+(defun disconnect (conn)
   ;; TODO
   )
