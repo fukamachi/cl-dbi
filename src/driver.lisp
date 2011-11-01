@@ -59,9 +59,8 @@
 (defun find-driver (driver-name)
   (find-if
    (lambda (class)
-     (or (string= driver-name (class-name class))
-         (string= (format nil "<DBI-DRIVER-~:(~A~)>" driver-name)
-                  (class-name class))))
+     (string= (format nil "<DBD-~:(~A~)>" driver-name)
+              (class-name class)))
    (list-all-drivers)))
 
 @export
