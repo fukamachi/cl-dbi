@@ -29,11 +29,9 @@
 
 * &lt;dbi-driver&gt;
 * &lt;dbi-connection&gt;
-* &lt;dbi-query&gt;
 * make-connection [driver params]
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
-* prepare-sql [conn sql] =&gt; function
-* execute [query &amp; params] =&gt; something
+* do-sql [conn sql &amp; params] =&gt; something
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
 
