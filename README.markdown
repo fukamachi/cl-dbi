@@ -21,6 +21,7 @@
 * connect [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * execute [query &amp; params] =&gt; something
+* do-sql [conn sql &amp; params] =&gt; something
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
 * find-driver [driver-name] =&gt; &lt;dbi-driver&gt;
 
@@ -32,6 +33,7 @@
 * make-connection [driver params]
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * prepare-sql [conn sql] =&gt; function
+* execute [query &amp; params] =&gt; something
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
 

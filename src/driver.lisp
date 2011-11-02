@@ -84,6 +84,10 @@
    params))
 
 @export
+(defmethod do-sql ((conn <dbi-connection>) (sql string) &rest params)
+  (apply #'execute (prepare conn sql) params))
+
+@export
 (defmethod prepare-sql ((conn <dbi-connection>) (sql string))
   "Create a function that takes parameters, binds them into a query and returns SQL as a string."
   ;; TODO: improve efficiency.

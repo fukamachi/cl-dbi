@@ -12,11 +12,13 @@
                 :find-driver
                 :make-connection
                 :prepare
-                :execute)
+                :execute
+                :do-sql)
   (:export :list-all-drivers
            :find-driver
            :prepare
-           :execute))
+           :execute
+           :do-sql))
 (in-package :dbi)
 
 (cl-syntax:use-syntax :annot)
@@ -29,8 +31,3 @@
              :format-control "Driver ~A is not found."
              :format-arguments driver-name))
     (apply #'make-connection driver params)))
-
-@export
-(defun disconnect (conn)
-  ;; TODO
-  )
