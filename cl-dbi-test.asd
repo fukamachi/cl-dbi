@@ -12,8 +12,9 @@
   :author "Eitarow Fukamachi"
   :license "LLGPL"
   :depends-on (:cl-dbi
-               :cl-test-more)
+               :cl-test-more
+               :closer-mop)
   :components ((:module "t"
                 :components
-                ((:file "cl-dbi"))))
+                ((:file "driver"))))
   :perform (load-op :after (op c) (asdf:clear-system c)))
