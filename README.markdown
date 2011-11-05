@@ -42,6 +42,12 @@ Create a subclass of &lt;dbi-driver&gt; and implement following methods.
 * make-connection
 * execute-using-connection
 
+And these methods may be overrided if needed.
+
+* prepare
+* do-sql
+* escape-sql
+
 ## Dependencies
 
 * cl-annot
