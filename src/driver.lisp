@@ -5,10 +5,8 @@
 
 (in-package :cl-user)
 (defpackage dbi.driver
-  (:use :cl)
-  (:import-from :cl-ppcre
-                :regex-replace
-                :regex-replace-all)
+  (:use :cl
+        :split-sequence)
   (:import-from :c2mop
                 :class-direct-subclasses)
   (:import-from :dbi.error
@@ -16,6 +14,8 @@
 (in-package :dbi.driver)
 
 (cl-syntax:use-syntax :annot)
+
+(declaim (optimize (speed 3)))
 
 @export
 (defclass <dbi-driver> () ()
@@ -95,19 +95,27 @@ This method must be implemented in each drivers."
   "Return escaped `sql`.
 This method may be overrided by subclasses when needed.
 For example, in case of MySQL and PostgreSQL, backslashes must be escaped by doubling it."
-  (ppcre:regex-replace-all "'" sql  "''"))
+  (with-output-to-string (out)
+    (loop for c across sql
+          if (char= c #\')
+            do (write-sequence "''" out)
+          else
+            do (write-char c out))))
 
 (defmethod prepare-sql ((conn <dbi-connection>) (sql string))
   "Create a function that takes parameters, binds them into a query and returns SQL as a string."
-  ;; TODO: improve efficiency.
-  (lambda (&rest params)
-    (reduce (lambda (sql v)
-              (ppcre:regex-replace "\\?" sql v))
-            (mapcar
-             (lambda (param)
-               (typecase param
-                 (string (concatenate 'string "'" (escape-sql conn param) "'"))
-                 (null "NULL")
-                 (t (princ-to-string param))))
-             params)
-            :initial-value sql)))
+  (labels ((param-to-sql (param)
+             (typecase param
+               (string (concatenate 'string "'" (escape-sql conn param) "'"))
+               (null "NULL")
+               (t (princ-to-string param)))))
+    (let ((sql-parts (split-sequence #\? sql)))
+      (lambda (&rest params)
+        (with-output-to-string (out)
+          (loop for part in sql-parts
+                for param in params
+                do (write-sequence
+                    (concatenate 'string
+                                 part
+                                 (param-to-sql param))
+                         out)))))))

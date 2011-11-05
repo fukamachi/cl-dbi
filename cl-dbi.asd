@@ -20,7 +20,7 @@
   :license "LLGPL"
   :depends-on (:cl-syntax
                :cl-syntax-annot
-               :cl-ppcre
+               :split-sequence
                :closer-mop)
   :components ((:module "src"
                 :components

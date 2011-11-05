@@ -52,7 +52,7 @@ And these methods may be overrided if needed.
 
 * cl-annot
 * CL-Syntax
-* CL-PPCRE
+* SPLIT-SEQUENCE
 * closer-mop
 
 ## Author
