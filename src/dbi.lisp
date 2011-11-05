@@ -24,11 +24,11 @@
 (cl-syntax:use-syntax :annot)
 
 @export
-(defun connect (driver-name &rest params &allow-other-keys)
+(defun connect (driver-name &rest params &key &allow-other-keys)
   "Open a connection to the database which corresponds to `driver-name`."
   (let ((driver (find-driver driver-name)))
     (unless driver
       (error 'simple-error
              :format-control "Driver ~A is not found."
              :format-arguments driver-name))
-    (apply #'make-connection driver params)))
+    (apply #'make-connection (make-instance driver) params)))

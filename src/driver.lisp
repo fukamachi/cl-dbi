@@ -18,24 +18,15 @@
 (cl-syntax:use-syntax :annot)
 
 @export
-(defclass <dbi-driver> ()
-     ((driver-name :type (or string keyword)
-                   :initarg :driver-name
-                   :initform (error "A slot `name` is required for `<dbi-driver>`.")))
+(defclass <dbi-driver> () ()
   (:documentation "Base class for DB driver."))
 
 @export
-(defclass <dbi-connection> ()
-     ((driver-name :type string
-                   :initarg :driver-name
-                   :initform (error "A slot `driver-name` is required for `<dbi-connection>`."))
-      (openp :type boolean
-             :initarg :openp
-             :initform t))
+(defclass <dbi-connection> () ()
   (:documentation "Base class for managing DB connection."))
 
 @export
-(defmethod make-connection ((driver <dbi-driver>) params)
+(defmethod make-connection ((driver <dbi-driver>) &rest params)
   "Create a instance of `<dbi-connection>` for the `driver`.
 This method must be implemented in each drivers."
   (declare (ignore driver params))
@@ -49,7 +40,7 @@ This method must be implemented in each drivers."
 Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (find-if
    (lambda (class)
-     (string= (format nil "<DBD-~:(~A~)>" driver-name)
+     (string= (format nil "<DBD-~:@(~A~)>" driver-name)
               (class-name class)))
    (list-all-drivers)))
 
@@ -115,7 +106,7 @@ For example, in case of MySQL and PostgreSQL, backslashes must be escaped by dou
             (mapcar
              (lambda (param)
                (typecase param
-                 (string (concatenate 'string "'" (escape-sql param) "'"))
+                 (string (concatenate 'string "'" (escape-sql conn param) "'"))
                  (null "NULL")
                  (t (princ-to-string param))))
              params)
