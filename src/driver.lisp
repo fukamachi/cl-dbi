@@ -10,7 +10,10 @@
   (:import-from :c2mop
                 :class-direct-subclasses)
   (:import-from :dbi.error
-                :<dbi-error>))
+                :<dbi-unimplemented-error>)
+  (:export :query-connection
+           :query-sql
+           :query-prepared))
 (in-package :dbi.driver)
 
 (cl-syntax:use-syntax :annot)
@@ -30,8 +33,8 @@
   "Create a instance of `<dbi-connection>` for the `driver`.
 This method must be implemented in each drivers."
   (declare (ignore driver params))
-  (error '<dbi-error>
-         :format-control "`make-connection' must be implemented in a subclass of `<dbi-driver>'."))
+  (error '<dbi-unimplemented-error>
+         :method-name 'make-connection))
 
 @export
 (defun find-driver (driver-name)
@@ -54,26 +57,40 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
      ((connection :type <dbi-connection>
                   :initarg :connection
                   :initform nil
-                  :accessor connection)
-      (prepared :type function
+                  :accessor query-connection)
+      (sql :type string
+           :initarg :sql
+           :accessor query-sql)
+      (prepared :type t
                 :initarg :prepared
-                :accessor prepared))
+                :accessor query-prepared))
   (:documentation "Class that represents a prepared DB query."))
 
+(defmethod initialize-instance :after ((query <dbi-query>) &key)
+  (with-slots (connection sql prepared) query
+     (setf prepared
+           (prepare-sql connection sql))))
+
 @export
-(defmethod prepare ((conn <dbi-connection>) (sql string))
+(defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbi-query>))
   "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
 This method may be overrided by subclasses."
-  (make-instance '<dbi-query>
+  (make-instance query-class
      :connection conn
-     :prepared (prepare-sql conn sql)))
+     :sql sql))
+
+@export
+(defmethod bind-parameter ((query <dbi-query>) &rest params)
+  "Bind `params` to `query` and return the SQL as a string.
+This method may be overrided by subclasses."
+  (apply (query-prepared query) params))
 
 @export
 (defmethod execute ((query <dbi-query>) &rest params)
-  "Bind `params` to `query`, execute it and return the results."
+  "Execute `query` with `params` and return the results."
   (execute-using-connection
-   (connection query)
-   query
+   (query-connection query)
+   (apply #'bind-parameter query params)
    params))
 
 @export
@@ -83,12 +100,12 @@ This method may be overrided by subclasses."
   (apply #'execute (prepare conn sql) params))
 
 @export
-(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
+(defmethod execute-using-connection ((conn <dbi-connection>) (sql string) params)
   "Execute `query` in `conn`.
 This method must be implemented in each drivers."
-  (declare (ignore conn query params))
-  (error '<dbi-error>
-         :format-control "`execute-using-connection' should be implemented."))
+  (declare (ignore conn sql params))
+  (error '<dbi-unimplemented-error>
+         :method-name 'execute-using-connection))
 
 @export
 (defmethod escape-sql ((conn <dbi-connection>) (sql string))
