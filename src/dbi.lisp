@@ -24,7 +24,7 @@
 (cl-syntax:use-syntax :annot)
 
 @export
-(defun connect (driver-name &rest params &key &allow-other-keys)
+(defun connect (driver-name &rest params &key database-name &allow-other-keys)
   "Open a connection to the database which corresponds to `driver-name`."
   (let ((driver (find-driver driver-name)))
     (unless driver
