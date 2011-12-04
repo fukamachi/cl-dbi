@@ -27,12 +27,13 @@ database itself."))
 @export
 (define-condition <dbi-unimplemented-error> (<dbi-interface-error>)
   ((method-name :type (or symbol string)))
-  (:documentation "Exception raised if the DBD driver has not specified a mandatory method."
-   :report
+  (:documentation "Exception raised if the DBD driver has not specified a mandatory method.")
+  (:report
    (lambda (condition stream)
      (format stream
              "`~A' must be implemented."
              (slot-value condition 'method-name)))))
+
 @export
 (define-condition <dbi-database-error> (<dbi-error>) ()
   (:documentation "Exception for errors related to the database."))
