@@ -12,7 +12,17 @@
                    "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?")))
       (dbi:execute query 0 "2011-11-01"))
 
+## Description
+
+CL-DBI is intended to provide the same interface for each database.
+
+Not only, you don't have to learn each API of databases anymore, but this layer is especially convenient when you want to use the different database by environment.
+
+For example, your application had better to use efficient database such as MySQL on the production environment, but you may want to use SQLite3 on your machine. In that case, all what you have to do is only to rewrite calling `dbi:connect`.
+
 ## Installation
+
+This library will be available on Quicklisp when ready to use.
 
 ## API
 
