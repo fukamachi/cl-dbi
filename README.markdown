@@ -29,7 +29,7 @@ This library will be available on Quicklisp when ready to use.
 ### User-Level API
 
 * connect [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
-* prepare [conn sql] =&gt; &lt;dbi-query&gt;
+* prepare [conn sql] =&gt; &lt;dbd-query&gt;
 * execute [query &amp; params] =&gt; something
 * do-sql [conn sql &amp; params] =&gt; something
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
@@ -40,7 +40,7 @@ This library will be available on Quicklisp when ready to use.
 * &lt;dbi-driver&gt;
 * &lt;dbi-connection&gt;
 * make-connection [driver params]
-* prepare [conn sql] =&gt; &lt;dbi-query&gt;
+* prepare [conn sql] =&gt; &lt;dbd-query&gt;
 * do-sql [conn sql &amp; params] =&gt; something
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string

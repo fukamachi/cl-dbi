@@ -53,7 +53,7 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (c2mop:class-direct-subclasses (find-class '<dbi-driver>)))
 
 @export
-(defclass <dbi-query> ()
+(defclass <dbd-query> ()
      ((connection :type <dbi-connection>
                   :initarg :connection
                   :initform nil
@@ -66,21 +66,21 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
                 :accessor query-prepared))
   (:documentation "Class that represents a prepared DB query."))
 
-(defmethod initialize-instance :after ((query <dbi-query>) &key)
+(defmethod initialize-instance :after ((query <dbd-query>) &key)
   (with-slots (connection sql prepared) query
      (setf prepared
            (prepare-sql connection sql))))
 
 @export
-(defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbi-query>))
-  "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
+(defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbd-query>))
+  "Preparing executing SQL statement and returns a instance of `<dbd-query>`.
 This method may be overrided by subclasses."
   (make-instance query-class
      :connection conn
      :sql sql))
 
 @export
-(defmethod execute ((query <dbi-query>) &rest params)
+(defmethod execute ((query <dbd-query>) &rest params)
   "Execute `query` with `params` and return the results."
   (execute-using-connection
    (query-connection query)
@@ -99,7 +99,7 @@ This method may be overrided by subclasses."
   (apply #'execute (prepare conn sql) params))
 
 @export
-(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
+(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbd-query>) params)
   "Execute `query` in `conn`.
 This method must be implemented in each drivers."
   (declare (ignore conn query params))
