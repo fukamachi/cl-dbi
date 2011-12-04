@@ -9,8 +9,12 @@
                      :password "1234"))
 
     (let ((query (dbi:prepare *connection*
-                   "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?")))
-      (dbi:execute query 0 "2011-11-01"))
+                   "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?"))
+          (result (dbi:execute query 0 "2011-11-01")))
+      (loop for row = (dbi:fetch result)
+            while row
+            ;; process "row".
+            ))
 
 ## Description
 
@@ -31,6 +35,7 @@ This library will be available on Quicklisp when ready to use.
 * connect [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
 * prepare [conn sql] =&gt; &lt;dbd-query&gt;
 * execute [query &amp; params] =&gt; something
+* fetch [result] =&gt; a row data or NIL (when the result is empty)
 * do-sql [conn sql &amp; params] =&gt; something
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
 * find-driver [driver-name] =&gt; &lt;dbi-driver&gt;
@@ -41,6 +46,7 @@ This library will be available on Quicklisp when ready to use.
 * &lt;dbi-connection&gt;
 * make-connection [driver params]
 * prepare [conn sql] =&gt; &lt;dbd-query&gt;
+* fetch [result] =&gt; a row data or NIL (when the result is empty)
 * do-sql [conn sql &amp; params] =&gt; something
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
@@ -55,6 +61,7 @@ Create a subclass of &lt;dbi-driver&gt; and implement following methods.
 And these methods may be overrided if needed.
 
 * prepare
+* fetch
 * do-sql
 * escape-sql
 

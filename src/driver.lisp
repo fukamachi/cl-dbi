@@ -88,9 +88,19 @@ This method may be overrided by subclasses."
    params))
 
 @export
-(defmethod fetch ()
-  ;; TODO
-  )
+(defgeneric fetch (result)
+  (:documentation "Fetch the first row from `result` which is returned by `execute`."))
+
+@export
+(defmethod fetch ((result list))
+  (pop result))
+
+@export
+(defmethod fetch ((result vector))
+  (handler-case (vector-pop result)
+    (simple-error (condition)
+      (declare (ignore condition))
+      nil)))
 
 @export
 (defmethod do-sql ((conn <dbi-connection>) (sql string) &rest params)
