@@ -29,10 +29,10 @@
   (:documentation "Base class for managing DB connection."))
 
 @export
-(defmethod make-connection ((driver <dbi-driver>) &rest params)
+(defmethod make-connection ((driver <dbi-driver>) &key)
   "Create a instance of `<dbi-connection>` for the `driver`.
 This method must be implemented in each drivers."
-  (declare (ignore driver params))
+  (declare (ignore driver))
   (error '<dbi-unimplemented-error>
          :method-name 'make-connection))
 
@@ -80,18 +80,17 @@ This method may be overrided by subclasses."
      :sql sql))
 
 @export
-(defmethod bind-parameter ((query <dbi-query>) &rest params)
-  "Bind `params` to `query` and return the SQL as a string.
-This method may be overrided by subclasses."
-  (apply (query-prepared query) params))
-
-@export
 (defmethod execute ((query <dbi-query>) &rest params)
   "Execute `query` with `params` and return the results."
   (execute-using-connection
    (query-connection query)
-   (apply #'bind-parameter query params)
+   query
    params))
+
+@export
+(defmethod fetch ()
+  ;; TODO
+  )
 
 @export
 (defmethod do-sql ((conn <dbi-connection>) (sql string) &rest params)
@@ -100,10 +99,10 @@ This method may be overrided by subclasses."
   (apply #'execute (prepare conn sql) params))
 
 @export
-(defmethod execute-using-connection ((conn <dbi-connection>) (sql string) params)
+(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
   "Execute `query` in `conn`.
 This method must be implemented in each drivers."
-  (declare (ignore conn sql params))
+  (declare (ignore conn query params))
   (error '<dbi-unimplemented-error>
          :method-name 'execute-using-connection))
 
