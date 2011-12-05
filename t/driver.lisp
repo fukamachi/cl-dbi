@@ -25,8 +25,7 @@
     t
     "find-driver: which exists")
 
-(is (list-all-drivers)
-    (list (find-class '<dbd-imaginedb>))
+(ok (find (find-class '<dbd-imaginedb>) (list-all-drivers))
     "list-all-drivers")
 
 (defparameter *connection* (connect :imaginedb))
