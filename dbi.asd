@@ -10,11 +10,11 @@
 |#
 
 (in-package :cl-user)
-(defpackage cl-dbi-asd
+(defpackage dbi-asd
   (:use :cl :asdf))
-(in-package :cl-dbi-asd)
+(in-package :dbi-asd)
 
-(defsystem cl-dbi
+(defsystem dbi
   :version "0.1-SNAPSHOT"
   :author "Eitarow Fukamachi"
   :license "LLGPL"
@@ -40,4 +40,4 @@
                                :fill-pointer t)))
           (setf (fill-pointer seq) (read-sequence seq stream))
           seq)))
-  :in-order-to ((test-op (load-op cl-dbi-test))))
+  :in-order-to ((test-op (load-op dbi-test))))

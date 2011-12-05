@@ -4,14 +4,14 @@
 |#
 
 (in-package :cl-user)
-(defpackage cl-dbi-test-asd
+(defpackage dbi-test-asd
   (:use :cl :asdf))
-(in-package :cl-dbi-test-asd)
+(in-package :dbi-test-asd)
 
-(defsystem cl-dbi-test
+(defsystem dbi-test
   :author "Eitarow Fukamachi"
   :license "LLGPL"
-  :depends-on (:cl-dbi
+  :depends-on (:dbi
                :cl-test-more
                :closer-mop)
   :components ((:module "t"
