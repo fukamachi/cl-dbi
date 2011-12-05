@@ -11,8 +11,8 @@
                 :class-direct-subclasses)
   (:import-from :dbi.error
                 :<dbi-unimplemented-error>)
-  (:export :query-connection
-           :query-sql
+  (:export :connection-handle
+           :query-connection
            :query-prepared))
 (in-package :dbi.driver)
 
@@ -25,7 +25,9 @@
   (:documentation "Base class for DB driver."))
 
 @export
-(defclass <dbi-connection> () ()
+(defclass <dbi-connection> ()
+     ((%handle :initarg :handle
+               :accessor connection-handle))
   (:documentation "Base class for managing DB connection."))
 
 @export
@@ -58,18 +60,10 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
                   :initarg :connection
                   :initform nil
                   :accessor query-connection)
-      (sql :type string
-           :initarg :sql
-           :accessor query-sql)
       (prepared :type t
                 :initarg :prepared
                 :accessor query-prepared))
   (:documentation "Class that represents a prepared DB query."))
-
-(defmethod initialize-instance :after ((query <dbd-query>) &key)
-  (with-slots (connection sql prepared) query
-     (setf prepared
-           (prepare-sql connection sql))))
 
 @export
 (defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbd-query>))
@@ -77,7 +71,7 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
 This method may be overrided by subclasses."
   (make-instance query-class
      :connection conn
-     :sql sql))
+     :prepared (prepare-sql conn sql)))
 
 @export
 (defmethod execute ((query <dbd-query>) &rest params)
