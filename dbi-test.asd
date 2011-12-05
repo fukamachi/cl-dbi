@@ -16,5 +16,8 @@
                :closer-mop)
   :components ((:module "t"
                 :components
-                ((:file "driver"))))
+                ((:file "driver")
+                 (:module "dbd"
+                  :components
+                  ((:file "sqlite3"))))))
   :perform (load-op :after (op c) (asdf:clear-system c)))

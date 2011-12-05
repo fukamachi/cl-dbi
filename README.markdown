@@ -24,6 +24,12 @@ Not only, you don't have to learn each API of databases anymore, but this layer 
 
 For example, your application had better to use efficient database such as MySQL on the production environment, but you may want to use SQLite3 on your machine. In that case, all what you have to do is only to rewrite calling `dbi:connect`.
 
+## Databases
+
+* SQLite3
+* MySQL (work in progress)
+* PostgreSQL (work in progress)
+
 ## Installation
 
 This library will be available on Quicklisp when ready to use.
