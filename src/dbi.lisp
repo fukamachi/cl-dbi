@@ -11,12 +11,14 @@
                 :list-all-drivers
                 :find-driver
                 :make-connection
+                :disconnect
                 :prepare
                 :execute
                 :fetch
                 :do-sql)
   (:export :list-all-drivers
            :find-driver
+           :disconnect
            :prepare
            :execute
            :fetch

@@ -33,6 +33,7 @@ This library will be available on Quicklisp when ready to use.
 ### User-Level API
 
 * connect [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
+* disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbd-query&gt;
 * execute [query &amp; params] =&gt; something
 * fetch [result] =&gt; a row data or NIL (when the result is empty)
@@ -45,6 +46,7 @@ This library will be available on Quicklisp when ready to use.
 * &lt;dbi-driver&gt;
 * &lt;dbi-connection&gt;
 * make-connection [driver params]
+* disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbd-query&gt;
 * fetch-using-connection [conn result] =&gt; a row data or NIL (when the result is empty)
 * do-sql [conn sql &amp; params] =&gt; something
@@ -56,6 +58,7 @@ This library will be available on Quicklisp when ready to use.
 Create a subclass of &lt;dbi-driver&gt; and implement following methods.
 
 * make-connection
+* disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * execute-using-connection
 
 And these methods may be overrided if needed.

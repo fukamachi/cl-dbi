@@ -39,6 +39,12 @@ This method must be implemented in each drivers."
          :method-name 'make-connection))
 
 @export
+(defmethod disconnect ((conn <dbi-connection>))
+  (declare (ignore conn))
+  (error '<dbi-unimplemented-error>
+         :method-name 'disconnect))
+
+@export
 (defun find-driver (driver-name)
   "Find a driver class named as `driver-name`.
 `driver-name` is a string designer.
