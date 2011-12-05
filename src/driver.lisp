@@ -97,6 +97,16 @@ This method may be overrided by subclasses."
       nil)))
 
 @export
+(defmethod fetch ((query <dbd-query>))
+  (fetch-using-connection (query-connection query) query))
+
+@export
+(defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbd-query>))
+  (declare (ignore driver))
+  (error '<dbi-unimplemented-error>
+         :method-name 'fetch-using-connection))
+
+@export
 (defmethod do-sql ((conn <dbi-connection>) (sql string) &rest params)
   "Do preparation and execution at once.
 This method may be overrided by subclasses."

@@ -46,7 +46,7 @@ This library will be available on Quicklisp when ready to use.
 * &lt;dbi-connection&gt;
 * make-connection [driver params]
 * prepare [conn sql] =&gt; &lt;dbd-query&gt;
-* fetch [result] =&gt; a row data or NIL (when the result is empty)
+* fetch-using-connection [conn result] =&gt; a row data or NIL (when the result is empty)
 * do-sql [conn sql &amp; params] =&gt; something
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
@@ -61,7 +61,7 @@ Create a subclass of &lt;dbi-driver&gt; and implement following methods.
 And these methods may be overrided if needed.
 
 * prepare
-* fetch
+* fetch-using-connection
 * do-sql
 * escape-sql
 
