@@ -13,11 +13,13 @@
                 :make-connection
                 :prepare
                 :execute
+                :fetch
                 :do-sql)
   (:export :list-all-drivers
            :find-driver
            :prepare
            :execute
+           :fetch
            :do-sql))
 (in-package :dbi)
 
