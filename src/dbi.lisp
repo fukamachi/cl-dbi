@@ -28,7 +28,18 @@
   "Open a connection to the database which corresponds to `driver-name`."
   (let ((driver (find-driver driver-name)))
     (unless driver
+      (load-driver driver-name)
+      (setf driver (find-driver driver-name)))
+
+    (unless driver
       (error 'simple-error
              :format-control "Driver ~A is not found."
              :format-arguments driver-name))
+
     (apply #'make-connection (make-instance driver) params)))
+
+(defun load-driver (driver-name)
+  (let ((driver-system (intern (format nil "DBD-~A" driver-name) :keyword)))
+    #+quicklisp (ql:quickload driver-system :verbose nil)
+    #-quicklisp
+    (asdf:load-system driver-system :verbose nil)))
