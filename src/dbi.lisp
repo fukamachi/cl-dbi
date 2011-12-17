@@ -15,14 +15,20 @@
                 :prepare
                 :execute
                 :fetch
-                :do-sql)
+                :do-sql
+                :begin-transaction
+                :commit
+                :rollback)
   (:export :list-all-drivers
            :find-driver
            :disconnect
            :prepare
            :execute
            :fetch
-           :do-sql))
+           :do-sql
+           :begin-transaction
+           :commit
+           :rollback))
 (in-package :dbi)
 
 (cl-syntax:use-syntax :annot)
@@ -47,3 +53,18 @@
     #+quicklisp (ql:quickload driver-system :verbose nil)
     #-quicklisp
     (asdf:load-system driver-system :verbose nil)))
+
+@export
+(defmacro with-transaction (conn &body body)
+  "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
+  (let ((ok (gensym "TRANSACTION-OK"))
+        (conn-var (gensym "CONN-VAR")))
+    `(let (,ok
+           (,conn-var ,conn))
+       (begin-transaction ,conn-var)
+       (unwind-protect (multiple-value-prog1
+                         (progn ,@body)
+                         (setf ,ok t))
+         (if ,ok
+             (commit ,conn-var)
+             (rollback ,conn-var))))))

@@ -46,6 +46,10 @@ This library will be available on Quicklisp when ready to use.
 * do-sql [conn sql &amp; params] =&gt; something
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
 * find-driver [driver-name] =&gt; &lt;dbi-driver&gt;
+* with-transaction [conn]
+* begin-transaction [conn]
+* commit [conn]
+* rollback [conn]
 
 ### Driver-Level API
 
@@ -58,6 +62,9 @@ This library will be available on Quicklisp when ready to use.
 * do-sql [conn sql &amp; params] =&gt; something
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
+* begin-transaction [conn]
+* commit [conn]
+* rollback [conn]
 
 ## Creating a new driver
 

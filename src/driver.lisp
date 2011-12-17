@@ -10,7 +10,8 @@
   (:import-from :c2mop
                 :class-direct-subclasses)
   (:import-from :dbi.error
-                :<dbi-unimplemented-error>)
+                :<dbi-unimplemented-error>
+                :<dbi-notsupported-error>)
   (:export :connection-handle
            :query-connection
            :query-prepared))
@@ -26,7 +27,10 @@
 
 @export
 (defclass <dbi-connection> ()
-     ((%handle :initarg :handle
+     ((auto-commit :type boolean
+                   :initarg :auto-commit
+                   :initform t)
+      (%handle :initarg :handle
                :accessor connection-handle))
   (:documentation "Base class for managing DB connection."))
 
@@ -34,13 +38,13 @@
 (defmethod make-connection ((driver <dbi-driver>) &key)
   "Create a instance of `<dbi-connection>` for the `driver`.
 This method must be implemented in each drivers."
-  (declare (ignore driver))
+  @ignore driver
   (error '<dbi-unimplemented-error>
          :method-name 'make-connection))
 
 @export
 (defmethod disconnect ((conn <dbi-connection>))
-  (declare (ignore conn))
+  @ignore conn
   (error '<dbi-unimplemented-error>
          :method-name 'disconnect))
 
@@ -99,7 +103,7 @@ This method may be overrided by subclasses."
 (defmethod fetch ((result vector))
   (handler-case (vector-pop result)
     (simple-error (condition)
-      (declare (ignore condition))
+      @ignore condition
       nil)))
 
 @export
@@ -108,7 +112,7 @@ This method may be overrided by subclasses."
 
 @export
 (defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbd-query>))
-  (declare (ignore driver))
+  @ignore driver
   (error '<dbi-unimplemented-error>
          :method-name 'fetch-using-connection))
 
@@ -122,9 +126,36 @@ This method may be overrided by subclasses."
 (defmethod execute-using-connection ((conn <dbi-connection>) (query <dbd-query>) params)
   "Execute `query` in `conn`.
 This method must be implemented in each drivers."
-  (declare (ignore conn query params))
+  @ignore (conn query params)
   (error '<dbi-unimplemented-error>
          :method-name 'execute-using-connection))
+
+@export
+(defmethod begin-transaction :around ((conn <dbi-connection>))
+  "Turn `auto-commit` off automatically before starting a transaction."
+  (symbol-macrolet ((auto-commit (slot-value conn 'auto-commit)))
+     (let ((saved auto-commit))
+       (setf auto-commit nil)
+       (unwind-protect (call-next-method)
+         (setf auto-commit saved)))))
+
+@export
+(defmethod begin-transaction ((conn <dbi-connection>))
+  "Start a transaction."
+  @ignore conn
+  (error '<dbi-notsupported-error>))
+
+@export
+(defmethod commit ((conn <dbi-connection>))
+  "Commit changes and end the current transaction."
+  @ignore conn
+  (error '<dbi-notsupported-error>))
+
+@export
+(defmethod rollback ((conn <dbi-connection>))
+  "Rollback all changes and end the current transaction."
+  @ignore conn
+  (error '<dbi-notsupported-error>))
 
 @export
 (defmethod escape-sql ((conn <dbi-connection>) (sql string))
