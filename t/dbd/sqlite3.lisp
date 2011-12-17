@@ -10,7 +10,7 @@
         :dbi))
 (in-package :dbd-sqlite3-test)
 
-(plan 2)
+(plan 5)
 
 (defvar *db-path*
     (asdf:system-relative-pathname
@@ -27,6 +27,37 @@
 (let* ((query (prepare *db* "SELECT name FROM user"))
        (result (execute query)))
   (is (fetch result) '(:|name| "fukamachi") "fetch"))
+
+(begin-transaction *db*)
+(do-sql *db* "INSERT INTO user (id, name) VALUES (2, 'matsuyama')")
+(commit *db*)
+
+(let* ((query (prepare *db* "SELECT name FROM user WHERE name = 'matsuyama'"))
+       (result (execute query)))
+  (is (fetch result)
+      '(:|name| "matsuyama")
+      "begin-transaction & commit"))
+
+(with-transaction *db*
+  (do-sql *db* "INSERT INTO user (id, name) VALUES (3, 'meymao')"))
+
+(let* ((query (prepare *db* "SELECT name FROM user WHERE name = 'meymao'"))
+       (result (execute query)))
+  (is (fetch result)
+      '(:|name| "meymao")
+      "with-transaction"))
+
+;; raise a simple-error to test `rollback'.
+(ignore-errors
+  (with-transaction *db*
+    (do-sql *db* "INSERT INTO user (id, name) VALUES (4, 'foobar')")
+    (error 'simple-error)))
+
+(let* ((query (prepare *db* "SELECT name FROM user WHERE name = 'foobar'"))
+       (result (execute query)))
+  (is (fetch result)
+      nil
+      "with-transaction & rollback"))
 
 (ok (disconnect *db*) "disconnect")
 

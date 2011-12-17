@@ -50,3 +50,12 @@
 
 (defmethod disconnect ((conn <dbd-sqlite3-connection>))
   (sqlite:disconnect (connection-handle conn)))
+
+(defmethod begin-transaction ((conn <dbd-sqlite3-connection>))
+  (sqlite:execute-non-query (connection-handle conn) "BEGIN TRANSACTION"))
+
+(defmethod commit ((conn <dbd-sqlite3-connection>))
+  (sqlite:execute-non-query (connection-handle conn) "COMMIT TRANSACTION"))
+
+(defmethod rollback ((conn <dbd-sqlite3-connection>))
+  (sqlite:execute-non-query (connection-handle conn) "ROLLBACK TRANSACTION"))
