@@ -43,7 +43,7 @@ This library will be available on Quicklisp when ready to use.
 * prepare [conn sql] =&gt; &lt;dbd-query&gt;
 * execute [query &amp; params] =&gt; something
 * fetch [result] =&gt; a row data as plist
-* do-sql [conn sql &amp; params] =&gt; something
+* do-sql [conn sql &amp; params]
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
 * find-driver [driver-name] =&gt; &lt;dbi-driver&gt;
 * with-transaction [conn]
@@ -59,7 +59,7 @@ This library will be available on Quicklisp when ready to use.
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbd-query&gt;
 * fetch-using-connection [conn result] =&gt; a row data as plist
-* do-sql [conn sql &amp; params] =&gt; something
+* do-sql [conn sql &amp; params]
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
 * begin-transaction [conn]
