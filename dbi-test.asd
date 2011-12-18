@@ -13,8 +13,15 @@
   :license "LLGPL"
   :depends-on (:dbi
                :cl-test-more
-               :closer-mop)
-  :components ((:module "t"
+               :closer-mop
+               :cl-syntax
+               :cl-syntax-annot
+               :trivial-types)
+  :components ((:module "src"
+                :components
+                ((:file "test")))
+               (:module "t"
+                :depends-on ("src")
                 :components
                 ((:file "driver")
                  (:module "dbd"
