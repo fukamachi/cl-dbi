@@ -33,20 +33,23 @@
 (defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-query>) params)
   (let ((count 0))
     (dolist (param params)
-      (bind-parameter query (incf count) param)))
+      (bind-parameter (query-prepared query) (incf count) param)))
   query)
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
   (apply #'execute-non-query (connection-handle conn) sql params))
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-query>))
-  (declare (ignore conn))
+  @ignore conn
   (let ((prepared (query-prepared query)))
-    (loop while (step-statement prepared)
-          for column in (statement-column-names prepared)
-          for i from 0
-          append (list (intern column :keyword)
-                       (statement-column-value prepared i)))))
+    (when (handler-case (step-statement prepared)
+            (sqlite-error (e)
+              @ignore e
+              nil))
+      (loop for column in (statement-column-names prepared)
+            for i from 0
+            append (list (intern column :keyword)
+                         (statement-column-value prepared i))))))
 
 (defmethod disconnect ((conn <dbd-sqlite3-connection>))
   (sqlite:disconnect (connection-handle conn)))

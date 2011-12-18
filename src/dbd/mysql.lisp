@@ -21,11 +21,11 @@
 @export
 (defclass <dbd-mysql-connection> (<dbi-connection>) ())
 
-(defmethod make-connection ((driver <dbd-mysql>) &key host database-name user password port socket client-flag)
+(defmethod make-connection ((driver <dbd-mysql>) &key host database-name username password port socket client-flag)
   (make-instance '<dbd-mysql-connection>
      :handle (connect :host host
                       :database database-name
-                      :user user
+                      :user username
                       :password password
                       :port port
                       :socket socket
