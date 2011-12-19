@@ -92,22 +92,8 @@ This method may be overrided by subclasses."
    params))
 
 @export
-(defgeneric fetch (result)
-  (:documentation "Fetch the first row from `result` which is returned by `execute`."))
-
-@export
-(defmethod fetch ((result list))
-  (pop result))
-
-@export
-(defmethod fetch ((result vector))
-  (handler-case (vector-pop result)
-    (simple-error (condition)
-      @ignore condition
-      nil)))
-
-@export
 (defmethod fetch ((query <dbd-query>))
+  "Fetch the first row from `query` which is returned by `execute`."
   (fetch-using-connection (query-connection query) query))
 
 @export

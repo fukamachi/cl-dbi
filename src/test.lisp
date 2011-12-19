@@ -19,7 +19,7 @@
 @export
 (defun run-driver-tests (driver-name &rest params)
   (let ((*db* (apply #'connect driver-name params)))
-    (plan 15)
+    (plan 17)
     (run-test-all)))
 
 (deftest |connect|
@@ -39,9 +39,13 @@
     (setf query (prepare *db* "SELECT * FROM person"))
     (is-type query '<dbd-query>)
     (setf result (execute query))
-    (ok result)
-    (ok (property-list-p (fetch result)))
-    (ok (property-list-p (fetch result)))
+    (is-type result '<dbd-query>)
+    (let ((result (fetch result)))
+      (is-type result 'property-list)
+      (is (getf result :|name|) "fukamachi"))
+    (let ((result (fetch result)))
+      (is-type result 'property-list)
+      (is (getf result :|name|) "matsuyama"))
     (is (fetch result) nil)))
 
 (deftest |place holder|
@@ -49,8 +53,8 @@
     (setf query (prepare *db* "SELECT * FROM person WHERE name = ?"))
     (is-type query '<dbd-query>)
     (setf result (execute query "matsuyama"))
-    (ok result)
-    (ok (property-list-p (fetch result)))
+    (is-type result '<dbd-query>)
+    (is-type (fetch result) 'property-list)
     (is (fetch result) nil)))
 
 (deftest |with-transaction|
