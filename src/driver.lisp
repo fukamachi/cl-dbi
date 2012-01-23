@@ -129,19 +129,22 @@ This method must be implemented in each drivers."
 (defmethod begin-transaction ((conn <dbi-connection>))
   "Start a transaction."
   @ignore conn
-  (error '<dbi-notsupported-error>))
+  (error '<dbi-notsupported-error>
+         :method-name 'begin-transaction))
 
 @export
 (defmethod commit ((conn <dbi-connection>))
   "Commit changes and end the current transaction."
   @ignore conn
-  (error '<dbi-notsupported-error>))
+  (error '<dbi-notsupported-error>
+         :method-name 'commit))
 
 @export
 (defmethod rollback ((conn <dbi-connection>))
   "Rollback all changes and end the current transaction."
   @ignore conn
-  (error '<dbi-notsupported-error>))
+  (error '<dbi-notsupported-error>
+         :method-name 'rollback))
 
 @export
 (defmethod escape-sql ((conn <dbi-connection>) (sql string))

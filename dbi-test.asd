@@ -26,5 +26,6 @@
                 ((:file "driver")
                  (:module "dbd"
                   :components
-                  ((:file "sqlite3"))))))
+                  ((:file "sqlite3")
+                   (:file "postgres"))))))
   :perform (load-op :after (op c) (asdf:clear-system c)))

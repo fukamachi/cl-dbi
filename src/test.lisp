@@ -58,7 +58,11 @@
     (is (fetch result) nil)))
 
 (deftest |with-transaction|
-  (with-transaction *db*
-    (do-sql *db* "INSERT INTO person (id, name) VALUES (3, 'meymao')"))
-  (is (fetch (execute (prepare *db* "SELECT * FROM person WHERE name = 'meymao'")))
-      '(:|id| 3 :|name| "meymao")))
+  (handler-case
+      (progn
+        (with-transaction *db*
+          (do-sql *db* "INSERT INTO person (id, name) VALUES (3, 'meymao')"))
+        (is (fetch (execute (prepare *db* "SELECT * FROM person WHERE name = 'meymao'")))
+            '(:|id| 3 :|name| "meymao")))
+    (dbi.error:<dbi-notsupported-error> (condition)
+     (skip 1 "Not supported"))))

@@ -26,7 +26,7 @@ database itself."))
 
 @export
 (define-condition <dbi-unimplemented-error> (<dbi-interface-error>)
-  ((method-name :type (or symbol string)))
+  ((method-name :initarg :method-name :type (or symbol string)))
   (:documentation "Exception raised if the DBD driver has not specified a mandatory method.")
   (:report
    (lambda (condition stream)
@@ -68,6 +68,12 @@ or already exists, syntax error in SQL statement, wrong number
 of parameters specified, etc."))
 
 @export
-(define-condition <dbi-notsupported-error> (<dbi-database-error>) ()
+(define-condition <dbi-notsupported-error> (<dbi-database-error>)
+  ((method-name :initarg :method-name :type (or symbol string)))
   (:documentation "Exception raised if e.g. commit() is called for a database which do not
-support transactions."))
+support transactions.")
+  (:report
+   (lambda (condition stream)
+     (format stream
+             "`~A' isn't supported on the current driver."
+             (slot-value condition 'method-name)))))
