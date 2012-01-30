@@ -31,15 +31,27 @@
                       :socket socket
                       :client-flag client-flag)))
 
-(defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-query>) params)
+@export
+(defclass <dbd-mysql-query> (<dbd-query>)
+     ((%result :initform nil)))
+
+(defmethod prepare ((conn <dbd-mysql-connection>) (sql string) &key)
+  (call-next-method conn sql :query-class '<dbd-mysql-query>))
+
+(defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-mysql-query>) params)
   (let ((result (query (apply (query-prepared query) params)
                        :database (connection-handle conn)
                        :store nil)))
+    (cl-mysql-system::return-or-close (cl-mysql-system::owner-pool result) result)
     (next-result-set result)
-    result))
+    (setf (slot-value query '%result) result)
+    query))
 
-(defmethod fetch-using-connection ((conn <dbd-mysql-connection>) result)
-  (next-row result))
+(defmethod fetch-using-connection ((conn <dbd-mysql-connection>) query)
+  (loop with result = (slot-value query '%result)
+        for val in (next-row result)
+        for (name . type) in (car (result-set-fields result))
+        append (list (intern name :keyword) val)))
 
 (defmethod escape-sql ((conn <dbd-mysql-connection>) (sql string))
   (escape-string sql :database (connection-handle conn)))

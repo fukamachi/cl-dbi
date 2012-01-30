@@ -27,5 +27,6 @@
                  (:module "dbd"
                   :components
                   ((:file "sqlite3")
-                   (:file "postgres"))))))
+                   (:file "postgres")
+                   (:file "mysql"))))))
   :perform (load-op :after (op c) (asdf:clear-system c)))
