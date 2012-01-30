@@ -106,7 +106,8 @@ This method may be overrided by subclasses."
 (defmethod do-sql ((conn <dbi-connection>) (sql string) &rest params)
   "Do preparation and execution at once.
 This method may be overrided by subclasses."
-  (apply #'execute (prepare conn sql) params))
+  (apply #'execute (prepare conn sql) params)
+  nil)
 
 @export
 (defmethod execute-using-connection ((conn <dbi-connection>) (query <dbd-query>) params)
