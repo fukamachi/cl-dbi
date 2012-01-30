@@ -27,8 +27,8 @@ For example, your application had better to use efficient database such as MySQL
 ## Databases
 
 * SQLite3
-* PostgreSQL (Transaction isn't supported yet)
-* MySQL (Transaction isn't supported yet)
+* PostgreSQL
+* MySQL
 
 ## Installation
 

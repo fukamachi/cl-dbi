@@ -63,3 +63,12 @@
 
 (defmethod fetch ((query <dbd-postgres-query>))
   (pop (slot-value query '%result)))
+
+(defmethod begin-transaction ((conn <dbd-postgres-connection>))
+  (do-sql conn "BEGIN"))
+
+(defmethod commit ((conn <dbd-postgres-connection>))
+  (do-sql conn "COMMIT"))
+
+(defmethod rollback ((conn <dbd-postgres-connection>))
+  (do-sql conn "ROLLBACK"))

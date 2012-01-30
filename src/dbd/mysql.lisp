@@ -58,3 +58,12 @@
 
 (defmethod disconnect ((conn <dbd-mysql-connection>))
   (cl-mysql:disconnect (connection-handle conn)))
+
+(defmethod begin-transaction ((conn <dbd-mysql-connection>))
+  (do-sql conn "START TRANSACTION"))
+
+(defmethod commit ((conn <dbd-mysql-connection>))
+  (do-sql conn "COMMIT"))
+
+(defmethod rollback ((conn <dbd-mysql-connection>))
+  (do-sql conn "ROLLBACK"))
