@@ -41,10 +41,10 @@
     (setf result (execute query))
     (is-type result '<dbd-query>)
     (let ((result (fetch result)))
-      (is-type result 'property-list)
+      (is-type result '(non-nil property-list))
       (is (getf result :|name|) "fukamachi"))
     (let ((result (fetch result)))
-      (is-type result 'property-list)
+      (is-type result '(non-nil property-list))
       (is (getf result :|name|) "matsuyama"))
     (is (fetch result) nil)))
 
@@ -54,7 +54,7 @@
     (is-type query '<dbd-query>)
     (setf result (execute query "matsuyama"))
     (is-type result '<dbd-query>)
-    (is-type (fetch result) 'property-list)
+    (is-type (fetch result) '(non-nil property-list))
     (is (fetch result) nil)))
 
 (deftest |with-transaction|
