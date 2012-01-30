@@ -39,7 +39,7 @@
                     do (setf escaped t)
                   else do (setf escaped nil)
                   if (and (char= c #\?) (not escaped))
-                    do (format t "$~D" (incf i))
+                    do (format s "$~D" (incf i))
                   else do (write-char c s))))
     (make-instance '<dbd-postgres-query>
        :connection conn
