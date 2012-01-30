@@ -37,9 +37,9 @@
 (deftest |prepare, execute & fetch|
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person"))
-    (is-type query '<dbd-query>)
+    (is-type query '<dbi-query>)
     (setf result (execute query))
-    (is-type result '<dbd-query>)
+    (is-type result '<dbi-query>)
     (let ((result (fetch result)))
       (is-type result '(non-nil property-list))
       (is (getf result :|name|) "fukamachi"))
@@ -51,9 +51,9 @@
 (deftest |place holder|
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person WHERE name = ?"))
-    (is-type query '<dbd-query>)
+    (is-type query '<dbi-query>)
     (setf result (execute query "matsuyama"))
-    (is-type result '<dbd-query>)
+    (is-type result '<dbi-query>)
     (is-type (fetch result) '(non-nil property-list))
     (is (fetch result) nil)))
 

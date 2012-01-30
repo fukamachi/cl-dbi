@@ -26,11 +26,11 @@
      :handle (connect database-name)))
 
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key)
-  (make-instance '<dbd-query>
+  (make-instance '<dbi-query>
      :connection conn
      :prepared (prepare-statement (connection-handle conn) sql)))
 
-(defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-query>) params)
+(defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>) params)
   (let ((count 0))
     (dolist (param params)
       (bind-parameter (query-prepared query) (incf count) param)))
@@ -39,7 +39,7 @@
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
   (apply #'execute-non-query (connection-handle conn) sql params))
 
-(defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-query>))
+(defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>))
   @ignore conn
   (let ((prepared (query-prepared query)))
     (when (handler-case (step-statement prepared)

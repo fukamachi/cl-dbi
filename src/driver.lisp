@@ -65,7 +65,7 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (c2mop:class-direct-subclasses (find-class '<dbi-driver>)))
 
 @export
-(defclass <dbd-query> ()
+(defclass <dbi-query> ()
      ((connection :type <dbi-connection>
                   :initarg :connection
                   :initform nil
@@ -76,15 +76,15 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (:documentation "Class that represents a prepared DB query."))
 
 @export
-(defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbd-query>))
-  "Preparing executing SQL statement and returns a instance of `<dbd-query>`.
+(defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbi-query>))
+  "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
 This method may be overrided by subclasses."
   (make-instance query-class
      :connection conn
      :prepared (prepare-sql conn sql)))
 
 @export
-(defmethod execute ((query <dbd-query>) &rest params)
+(defmethod execute ((query <dbi-query>) &rest params)
   "Execute `query` with `params` and return the results."
   (execute-using-connection
    (query-connection query)
@@ -92,12 +92,12 @@ This method may be overrided by subclasses."
    params))
 
 @export
-(defmethod fetch ((query <dbd-query>))
+(defmethod fetch ((query <dbi-query>))
   "Fetch the first row from `query` which is returned by `execute`."
   (fetch-using-connection (query-connection query) query))
 
 @export
-(defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbd-query>))
+(defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbi-query>))
   @ignore driver
   (error '<dbi-unimplemented-error>
          :method-name 'fetch-using-connection))
@@ -110,7 +110,7 @@ This method may be overrided by subclasses."
   nil)
 
 @export
-(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbd-query>) params)
+(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
   "Execute `query` in `conn`.
 This method must be implemented in each drivers."
   @ignore (conn query params)

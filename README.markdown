@@ -40,7 +40,7 @@ This library will be available on Quicklisp when ready to use.
 
 * connect [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
-* prepare [conn sql] =&gt; &lt;dbd-query&gt;
+* prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * execute [query &amp; params] =&gt; something
 * fetch [result] =&gt; a row data as plist
 * do-sql [conn sql &amp; params]
@@ -57,7 +57,7 @@ This library will be available on Quicklisp when ready to use.
 * &lt;dbi-connection&gt;
 * make-connection [driver params]
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
-* prepare [conn sql] =&gt; &lt;dbd-query&gt;
+* prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * fetch-using-connection [conn result] =&gt; a row data as plist
 * do-sql [conn sql &amp; params]
 * execute-using-connection =&gt; something

@@ -37,7 +37,7 @@
               (prepare *connection* "SELECT * FROM kyoto WHERE type = ?"))
 
 (is-type *query*
-         '<dbd-query>
+         '<dbi-query>
          "prepare")
 
 (is (funcall (slot-value *query* 'dbi.driver::prepared) "cafe")

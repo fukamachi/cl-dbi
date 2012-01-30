@@ -32,7 +32,7 @@
                       :client-flag client-flag)))
 
 @export
-(defclass <dbd-mysql-query> (<dbd-query>)
+(defclass <dbd-mysql-query> (<dbi-query>)
      ((%result :initform nil)))
 
 (defmethod prepare ((conn <dbd-mysql-connection>) (sql string) &key)

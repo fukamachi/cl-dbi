@@ -24,7 +24,7 @@
      :handle (open-database database-name username password host port use-ssl)))
 
 @export
-(defclass <dbd-postgres-query> (<dbd-query>)
+(defclass <dbd-postgres-query> (<dbi-query>)
      ((name :initarg :name)
       (%result :initform nil)))
 
