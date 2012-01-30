@@ -10,4 +10,4 @@
         :dbi))
 (in-package :dbd-mysql-test)
 
-(dbi.test:run-driver-tests :mysql :database-name "dbi" :username "root")
+(dbi.test:run-driver-tests :mysql :database-name "cl-dbi" :username "nobody" :password "nobody")
