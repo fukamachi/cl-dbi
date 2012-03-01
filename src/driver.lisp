@@ -170,12 +170,11 @@ For example, in case of MySQL and PostgreSQL, backslashes must be escaped by dou
         (if params
             (with-output-to-string (out)
               (loop for part in sql-parts
-                    for param = (pop params)
                     do
                  (let ((param (pop params)))
                    (write-sequence
                     (if param
-                        (concatenate 'string part "'" param "'")
+                        (concatenate 'string part (param-to-sql param))
                         part)
                     out))))
             sql)))))
