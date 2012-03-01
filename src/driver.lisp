@@ -98,7 +98,6 @@ This method may be overrided by subclasses."
 
 @export
 (defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbi-query>))
-  @ignore driver
   (error '<dbi-unimplemented-error>
          :method-name 'fetch-using-connection))
 
@@ -171,10 +170,12 @@ For example, in case of MySQL and PostgreSQL, backslashes must be escaped by dou
         (if params
             (with-output-to-string (out)
               (loop for part in sql-parts
-                    for param in params
-                    do (write-sequence
-                        (concatenate 'string
-                                     part
-                                     (param-to-sql param))
-                             out)))
+                    for param = (pop params)
+                    do
+                 (let ((param (pop params)))
+                   (write-sequence
+                    (if param
+                        (concatenate 'string part "'" param "'")
+                        part)
+                    out))))
             sql)))))
