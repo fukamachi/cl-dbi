@@ -1,0 +1,137 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>CL-DBI by fukamachi</title>
+    
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <script src="javascripts/scale.fix.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>CL-DBI</h1>
+        <p>Database independent interface for Common Lisp</p>
+        <p class="view"><a href="https://github.com/fukamachi/cl-dbi">View the Project on GitHub <small>fukamachi/cl-dbi</small></a></p>
+        <ul>
+          <li><a href="https://github.com/fukamachi/cl-dbi/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/fukamachi/cl-dbi/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/fukamachi/cl-dbi">Fork On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h2>Usage</h2>
+
+<pre><code>(defvar *connection*
+    (dbi:connect :mysql
+                 :database-name "test"
+                 :username "nobody"
+                 :password "1234"))
+
+(let ((query (dbi:prepare *connection*
+               "SELECT * FROM somewhere WHERE flag = ? OR updated_at &gt; ?"))
+      (result (dbi:execute query 0 "2011-11-01")))
+  (loop for row = (dbi:fetch result)
+        while row
+        ;; process "row".
+        ))
+</code></pre>
+
+<h2>Description</h2>
+
+<p>CL-DBI is intended to provide the same interface for each database.</p>
+
+<p>Not only, you don't have to learn each API of databases anymore, but this layer is especially convenient when you want to use the different database by environment.</p>
+
+<p>For example, your application had better to use efficient database such as MySQL on the production environment, but you may want to use SQLite3 on your machine. In that case, all what you have to do is only to rewrite calling <code>dbi:connect</code>.</p>
+
+<h2>Databases</h2>
+
+<ul>
+<li>SQLite3</li>
+<li>PostgreSQL</li>
+<li>MySQL</li>
+</ul><h2>Installation</h2>
+
+<p>This library will be available on Quicklisp when ready to use.</p>
+
+<h2>API</h2>
+
+<h3>User-Level API</h3>
+
+<ul>
+<li>connect [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;</li>
+<li>disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL</li>
+<li>prepare [conn sql] =&gt; &lt;dbi-query&gt;</li>
+<li>execute [query &amp; params] =&gt; something</li>
+<li>fetch [result] =&gt; a row data as plist</li>
+<li>do-sql [conn sql &amp; params]</li>
+<li>list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)</li>
+<li>find-driver [driver-name] =&gt; &lt;dbi-driver&gt;</li>
+<li>with-transaction [conn]</li>
+<li>begin-transaction [conn]</li>
+<li>commit [conn]</li>
+<li>rollback [conn]</li>
+</ul><h3>Driver-Level API</h3>
+
+<ul>
+<li>&lt;dbi-driver&gt;</li>
+<li>&lt;dbi-connection&gt;</li>
+<li>make-connection [driver params]</li>
+<li>disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL</li>
+<li>prepare [conn sql] =&gt; &lt;dbi-query&gt;</li>
+<li>fetch-using-connection [conn result] =&gt; a row data as plist</li>
+<li>do-sql [conn sql &amp; params]</li>
+<li>execute-using-connection =&gt; something</li>
+<li>escape-sql =&gt; string</li>
+<li>begin-transaction [conn]</li>
+<li>commit [conn]</li>
+<li>rollback [conn]</li>
+</ul><h2>Creating a new driver</h2>
+
+<p>Create a subclass of &lt;dbi-driver&gt; and implement following methods.</p>
+
+<ul>
+<li>make-connection</li>
+<li>disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL</li>
+<li>execute-using-connection</li>
+</ul><p>And these methods may be overrided if needed.</p>
+
+<ul>
+<li>prepare</li>
+<li>fetch-using-connection</li>
+<li>do-sql</li>
+<li>escape-sql</li>
+</ul><h2>Dependencies</h2>
+
+<ul>
+<li>cl-annot</li>
+<li>CL-Syntax</li>
+<li>SPLIT-SEQUENCE</li>
+<li>closer-mop</li>
+</ul><h2>Author</h2>
+
+<ul>
+<li>Eitarow Fukamachi (e.arrows@gmail.com)</li>
+</ul><h2>Copyright</h2>
+
+<p>Copyright (c) 2011 Eitarow Fukamachi (e.arrows@gmail.com)</p>
+
+<h1>License</h1>
+
+<p>Licensed under the LLGPL License.</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/fukamachi">fukamachi</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <!--[if !IE]><script>fixScale(document);</script><!--<![endif]-->
+  </body>
+</html>
