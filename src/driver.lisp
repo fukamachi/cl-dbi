@@ -97,6 +97,13 @@ This method may be overrided by subclasses."
   (fetch-using-connection (query-connection query) query))
 
 @export
+(defmethod fetch-all ((query <dbi-query>))
+  "Fetch all rest rows from `query`."
+  (loop for result = (fetch query)
+        while result
+        collect result))
+
+@export
 (defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbi-query>))
   (error '<dbi-unimplemented-error>
          :method-name 'fetch-using-connection))

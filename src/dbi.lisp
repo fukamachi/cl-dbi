@@ -15,6 +15,7 @@
                 :prepare
                 :execute
                 :fetch
+                :fetch-all
                 :do-sql
                 :begin-transaction
                 :commit
@@ -25,6 +26,7 @@
            :prepare
            :execute
            :fetch
+           :fetch-all
            :do-sql
            :begin-transaction
            :commit

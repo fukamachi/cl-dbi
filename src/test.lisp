@@ -19,7 +19,7 @@
 @export
 (defun run-driver-tests (driver-name &rest params)
   (let ((*db* (apply #'connect driver-name params)))
-    (plan 17)
+    (plan 18)
     (run-test-all)))
 
 (deftest |connect|
@@ -38,6 +38,9 @@
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person"))
     (is-type query '<dbi-query>)
+    (setf result (execute query))
+    (is (fetch-all result)
+        '((:|id| 1 :|name| "fukamachi") (:|id| 2 :|name| "matsuyama")))
     (setf result (execute query))
     (is-type result '<dbi-query>)
     (let ((result (fetch result)))

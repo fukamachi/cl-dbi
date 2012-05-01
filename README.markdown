@@ -43,6 +43,7 @@ This library will be available on Quicklisp when ready to use.
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * execute [query &amp; params] =&gt; something
 * fetch [result] =&gt; a row data as plist
+* fetch-all [result] =&gt; a list of all row data
 * do-sql [conn sql &amp; params]
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
 * find-driver [driver-name] =&gt; &lt;dbi-driver&gt;
