@@ -31,6 +31,8 @@
      :prepared (prepare-statement (connection-handle conn) sql)))
 
 (defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>) params)
+  (reset-statement (query-prepared query))
+  (clear-statement-bindings (query-prepared query))
   (let ((count 0))
     (dolist (param params)
       (bind-parameter (query-prepared query) (incf count) param)))
