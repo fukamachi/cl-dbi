@@ -64,6 +64,9 @@
 (defmethod fetch ((query <dbd-postgres-query>))
   (pop (slot-value query '%result)))
 
+(defmethod disconnect ((conn <dbd-postgres-connection>))
+  (close-database (connection-handle conn)))
+
 (defmethod begin-transaction ((conn <dbd-postgres-connection>))
   (do-sql conn "BEGIN"))
 
