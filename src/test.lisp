@@ -14,13 +14,14 @@
 
 (cl-syntax:use-syntax :annot)
 
+(plan 6)
+
 (defparameter *db* nil)
 
 @export
 (defun run-driver-tests (driver-name &rest params)
   (let ((*db* (apply #'connect driver-name params)))
-    (plan 18)
-    (run-test-all)))
+    (run-test-package :dbi.test)))
 
 (deftest |connect|
   (is-type *db* '<dbi-connection>))
@@ -69,3 +70,12 @@
             '(:|id| 3 :|name| "meymao")))
     (dbi.error:<dbi-notsupported-error> (condition)
      (skip 1 "Not supported"))))
+
+(deftest |statement error|
+  (is-type (handler-case (do-sql *db* "INSERT")
+             (error (e) e))
+           '<dbi-database-error>)
+  (is-type (handler-case (execute (prepare *db* "SELECT SELECT SELECT"))
+             (error (e) e))
+           '<dbi-database-error>)
+  (do-sql *db* "INSERT INTO person (id, name) VALUES (4, 'mizuna')"))

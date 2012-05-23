@@ -26,9 +26,14 @@
      :handle (connect database-name)))
 
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key)
-  (make-instance '<dbi-query>
-     :connection conn
-     :prepared (prepare-statement (connection-handle conn) sql)))
+  (handler-case
+      (make-instance '<dbi-query>
+         :connection conn
+         :prepared (prepare-statement (connection-handle conn) sql))
+    (sqlite-error (e)
+      (error '<dbi-database-error>
+             :message (sqlite-error-message e)
+             :error-code (sqlite-error-code e)))))
 
 (defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>) params)
   (reset-statement (query-prepared query))
@@ -39,7 +44,12 @@
   query)
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
-  (apply #'execute-non-query (connection-handle conn) sql params))
+  (handler-case
+      (apply #'execute-non-query (connection-handle conn) sql params)
+    (sqlite-error (e)
+      (error '<dbi-database-error>
+             :message (sqlite-error-message e)
+             :error-code (sqlite-error-code e)))))
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>))
   @ignore conn

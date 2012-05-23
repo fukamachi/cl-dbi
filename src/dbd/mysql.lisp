@@ -10,7 +10,14 @@
         :dbi.error
         :cl-mysql)
   (:shadowing-import-from :dbi.driver
-                          :disconnect))
+                          :disconnect)
+  (:import-from :cl-mysql-system
+                :mysql-error
+                :connect-to-server
+                :mysql-error-message
+                :mysql-error-errno
+                :return-or-close
+                :owner-pool))
 (in-package :dbd.mysql)
 
 (cl-syntax:use-syntax :annot)
@@ -39,10 +46,15 @@
   (call-next-method conn sql :query-class '<dbd-mysql-query>))
 
 (defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-mysql-query>) params)
-  (let ((result (query (apply (query-prepared query) params)
-                       :database (connection-handle conn)
-                       :store nil)))
-    (cl-mysql-system::return-or-close (cl-mysql-system::owner-pool result) result)
+  (let ((result
+         (handler-case (query (apply (query-prepared query) params)
+                              :database (connection-handle conn)
+                              :store nil)
+           (mysql-error (e)
+             (error '<dbi-database-error>
+                    :message (mysql-error-message e)
+                    :error-code (mysql-error-errno e))))))
+    (return-or-close (owner-pool result) result)
     (next-result-set result)
     (setf (slot-value query '%result) result)
     query))

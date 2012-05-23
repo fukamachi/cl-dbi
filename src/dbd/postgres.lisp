@@ -8,7 +8,11 @@
   (:use :cl
         :dbi.driver
         :dbi.error
-        :cl-postgres))
+        :cl-postgres)
+  (:import-from :cl-postgres-error
+                :syntax-error-or-access-violation
+                :database-error-message
+                :database-error-code))
 (in-package :dbd.postgres)
 
 (cl-syntax:use-syntax :annot)
@@ -41,10 +45,15 @@
                   if (and (char= c #\?) (not escaped))
                     do (format s "$~D" (incf i))
                   else do (write-char c s))))
-    (make-instance '<dbd-postgres-query>
-       :connection conn
-       :name name
-       :prepared (prepare-query (connection-handle conn) name sql))))
+    (handler-case
+        (make-instance '<dbd-postgres-query>
+           :connection conn
+           :name name
+           :prepared (prepare-query (connection-handle conn) name sql))
+      (syntax-error-or-access-violation (e)
+        (error '<dbi-programming-error>
+               :message (database-error-message e)
+               :error-code (database-error-code e))))))
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
   (exec-prepared (connection-handle conn)

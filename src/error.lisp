@@ -35,7 +35,9 @@ database itself."))
              (slot-value condition 'method-name)))))
 
 @export
-(define-condition <dbi-database-error> (<dbi-error>) ()
+(define-condition <dbi-database-error> (<dbi-error>)
+  ((message :initarg :message)
+   (error-code :initarg :error-code))
   (:documentation "Exception for errors related to the database."))
 
 @export
