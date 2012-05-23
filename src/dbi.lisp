@@ -5,7 +5,8 @@
 
 (in-package :cl-user)
 (defpackage dbi
-  (:use :cl)
+  (:use :cl
+        :dbi.error)
   (:nicknames :cl-dbi)
   (:import-from :dbi.driver
                 :list-all-drivers
@@ -30,7 +31,19 @@
            :do-sql
            :begin-transaction
            :commit
-           :rollback))
+           :rollback
+
+           :<dbi-error>
+           :<dbi-warning>
+           :<dbi-interface-error>
+           :<dbi-unimplemented-error>
+           :<dbi-database-error>
+           :<dbi-data-error>
+           :<dbi-operational-error>
+           :<dbi-integrity-error>
+           :<dbi-internal-error>
+           :<dbi-programming-error>
+           :<dbi-notsupported-error>))
 (in-package :dbi)
 
 (cl-syntax:use-syntax :annot)
