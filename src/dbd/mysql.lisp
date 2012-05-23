@@ -51,6 +51,8 @@
                               :database (connection-handle conn)
                               :store nil)
            (mysql-error (e)
+             ;; reconnect
+             (connect-to-server (slot-value conn 'dbi.driver::%handle))
              (error '<dbi-database-error>
                     :message (mysql-error-message e)
                     :error-code (mysql-error-errno e))))))
