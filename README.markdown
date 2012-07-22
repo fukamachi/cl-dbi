@@ -16,6 +16,10 @@
             ;; process "row".
             ))
 
+## Warning
+
+This library is still under the development and considered ALPHA quality. APIs will be likely to change.
+
 ## Description
 
 CL-DBI is intended to provide the same interface for each database.
