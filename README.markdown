@@ -18,15 +18,13 @@
 
 ## Warning
 
-This library is still under the development and considered ALPHA quality. APIs will be likely to change.
+This library is still under development and considered ALPHA quality. APIs are likely to change.
 
 ## Description
 
-CL-DBI is intended to provide the same interface for each database.
+CL-DBI provides the same interface for multiple SQL databases. You need not learn the API of each database.
 
-Not only, you don't have to learn each API of databases anymore, but this layer is especially convenient when you want to use the different database by environment.
-
-For example, your application had better to use efficient database such as MySQL on the production environment, but you may want to use SQLite3 on your machine. In that case, all what you have to do is only to rewrite calling `dbi:connect`.
+This library is especially convenient when you want to use different databases in different environments. For example, you may use MySQL as a production database, but use SQLite3 on your development system. To switch database backends you need only change the arguments to `dbi:connect`.
 
 ## Databases
 
@@ -36,7 +34,7 @@ For example, your application had better to use efficient database such as MySQL
 
 ## Installation
 
-This library will be available on Quicklisp when ready to use.
+This library will be available on Quicklisp when ready for use.
 
 ## API
 
@@ -79,7 +77,7 @@ Create a subclass of &lt;dbi-driver&gt; and implement following methods.
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * execute-using-connection
 
-And these methods may be overrided if needed.
+These methods can be overriden if needed.
 
 * prepare
 * fetch-using-connection
