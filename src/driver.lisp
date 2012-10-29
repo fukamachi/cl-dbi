@@ -76,6 +76,9 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (:documentation "Class that represents a prepared DB query."))
 
 @export
+(defgeneric prepare (conn sql &key))
+
+@export
 (defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbi-query>))
   "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
 This method may be overrided by subclasses."
