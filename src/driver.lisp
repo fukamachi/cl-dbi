@@ -6,7 +6,8 @@
 (in-package :cl-user)
 (defpackage dbi.driver
   (:use :cl
-        :split-sequence)
+        :split-sequence
+        :alexandria)
   (:import-from :c2mop
                 :class-direct-subclasses)
   (:import-from :dbi.error
@@ -34,19 +35,33 @@
                :accessor connection-handle))
   (:documentation "Base class for managing DB connection."))
 
-@export
-(defmethod make-connection ((driver <dbi-driver>) &key)
-  "Create a instance of `<dbi-connection>` for the `driver`.
-This method must be implemented in each drivers."
-  @ignore driver
-  (error '<dbi-unimplemented-error>
-         :method-name 'make-connection))
+(defmacro define-dbi-interface (name (class &rest args) docstring)
+  "Define NAME as a method which a DBD driver must implement.
 
-@export
-(defmethod disconnect ((conn <dbi-connection>))
-  @ignore conn
-  (error '<dbi-unimplemented-error>
-         :method-name 'disconnect))
+Creates a generic function, with :documentation DOCSTRING, and a
+default method with simply signals a <dbi-unimplemented-error>
+condition."
+  (multiple-value-bind (required optional rest keys)
+      (parse-ordinary-lambda-list args)
+    `(progn
+       (defgeneric ,name (,class ,@args)
+         (:documentation ,docstring)
+         (:method ((object ,class) ,@args)
+           (declare (ignore ,@required
+                            ,@(mapcar #'first optional)
+                            ,@(if rest (list rest) '())
+                            ,@(mapcar (compose #'second #'first) keys)))
+           (error '<dbi-unimplemented-error> :method-name ',name)))
+       (export ',name))))
+
+(define-dbi-interface make-connection (<dbi-driver> &rest connection-args)
+  "Create a instance of `<dbi-connection>` for the `driver`.
+This method must be implemented in each drivers.
+
+CONNECTION-ARGS will be passed to the underlying driver.")
+
+(define-dbi-interface disconnect (<dbi-connection>)
+  "Disconnect the conneciton. Free any resources used by <dbi-connection>.")
 
 @export
 (defun find-driver (driver-name)
@@ -76,15 +91,13 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (:documentation "Class that represents a prepared DB query."))
 
 @export
-(defgeneric prepare (conn sql &key))
-
-@export
-(defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbi-query>))
-  "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
-This method may be overrided by subclasses."
-  (make-instance query-class
-     :connection conn
-     :prepared (prepare-sql conn sql)))
+(defgeneric prepare (conn sql &key &allow-other-keys)
+  (:documentation "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
+This method may be overrided by subclasses.")
+  (:method ((conn <dbi-connection>) (sql string) &key &allow-other-keys)
+    (make-instance '<dbi-query>
+                   :connection conn
+                   :prepared (prepare-sql conn sql))))
 
 @export
 (defmethod execute ((query <dbi-query>) &rest params)
@@ -106,10 +119,8 @@ This method may be overrided by subclasses."
         while result
         collect result))
 
-@export
-(defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbi-query>))
-  (error '<dbi-unimplemented-error>
-         :method-name 'fetch-using-connection))
+(define-dbi-interface fetch-using-connection (<dbi-connection> <dbi-query>)
+  "Fetch the next row of <DBI-QUERY>. Returns NIL if no more rows available.")
 
 @export
 (defmethod do-sql ((conn <dbi-connection>) (sql string) &rest params)
@@ -118,15 +129,12 @@ This method may be overrided by subclasses."
   (apply #'execute (prepare conn sql) params)
   nil)
 
-@export
-(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
-  "Execute `query` in `conn`.
-This method must be implemented in each drivers."
-  @ignore (conn query params)
-  (error '<dbi-unimplemented-error>
-         :method-name 'execute-using-connection))
+(define-dbi-interface execute-using-connection (<dbi-connection> <dbi-query> params)
+  "Execute `query` in `conn` with query parameters bound to the values PARAMS.")
 
-@export
+(define-dbi-interface begin-transaction (<dbi-connection>)
+  "Start a transaction.")
+
 (defmethod begin-transaction :around ((conn <dbi-connection>))
   "Turn `auto-commit` off automatically before starting a transaction."
   (symbol-macrolet ((auto-commit (slot-value conn 'auto-commit)))
@@ -135,26 +143,12 @@ This method must be implemented in each drivers."
        (unwind-protect (call-next-method)
          (setf auto-commit saved)))))
 
-@export
-(defmethod begin-transaction ((conn <dbi-connection>))
-  "Start a transaction."
-  @ignore conn
-  (error '<dbi-notsupported-error>
-         :method-name 'begin-transaction))
+(define-dbi-interface commit (<dbi-connection>)
+  "Commit changes and end the current transaction.")
 
 @export
-(defmethod commit ((conn <dbi-connection>))
-  "Commit changes and end the current transaction."
-  @ignore conn
-  (error '<dbi-notsupported-error>
-         :method-name 'commit))
-
-@export
-(defmethod rollback ((conn <dbi-connection>))
-  "Rollback all changes and end the current transaction."
-  @ignore conn
-  (error '<dbi-notsupported-error>
-         :method-name 'rollback))
+(define-dbi-interface rollback (<dbi-connection>)
+  "Rollback all changes and end the current transaction.")
 
 @export
 (defmethod escape-sql ((conn <dbi-connection>) (sql string))

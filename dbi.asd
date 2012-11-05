@@ -18,7 +18,8 @@
   :version "0.1"
   :author "Eitarow Fukamachi"
   :license "LLGPL"
-  :depends-on (:cl-syntax
+  :depends-on (:alexandria
+               :cl-syntax
                :cl-syntax-annot
                :split-sequence
                :closer-mop)
