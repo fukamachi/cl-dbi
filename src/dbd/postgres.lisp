@@ -32,6 +32,11 @@
      ((name :initarg :name)
       (%result :initform nil)))
 
+@export
+(defclass <dbd-postgres-query-result-set> (<dbi-query-result-set>)
+  ((field-names :initform '() :accessor result-set-column-names)
+   (rows :initform '() :accessor rows)))
+
 (defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
   (let ((name (symbol-name (gensym "PREPARED-STATEMENT"))))
     (setf sql
@@ -56,22 +61,24 @@
                :error-code (database-error-code e))))))
 
 (defmethod execute ((query <dbd-postgres-query>) params)
-  (exec-prepared (connection-handle (query-connection query))
-                 (slot-value query 'name)
-                 params
-                 ;; TODO: lazy fetching
-                 (row-reader (fields)
-                   (let ((result
-                          (loop while (next-row)
-                             collect (loop for field across fields
-                                        collect (intern (field-name field) :keyword)
-                                        collect (next-field field)))))
-                     (setf (slot-value query '%result)
-                           result)
-                     query))))
+  (let ((result (make-instance '<dbd-postgres-query-result-set>
+                               :query query)))
+    (exec-prepared (connection-handle (query-connection query))
+                   (slot-value query 'name)
+                   params
+                   ;; TODO: lazy fetching
+                   (row-reader (fields)
+                     (setf (field-names result) (loop
+                                                   for field across fields
+                                                   collect (field-name field))
+                           (rows result) (loop while (next-row)
+                                            collect (loop
+                                                       for field across fields
+                                                       collect (next-field field))))))
+    result))
 
-(defmethod fetch-next ((query <dbd-postgres-query>))
-  (pop (slot-value query '%result)))
+(defmethod fetch-next ((result <dbd-postgres-query-result-set>))
+  (pop (rows result)))
 
 (defmethod disconnect ((conn <dbd-postgres-connection>))
   (close-database (connection-handle conn)))

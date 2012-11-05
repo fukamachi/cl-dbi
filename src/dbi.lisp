@@ -17,6 +17,7 @@
                 :execute
                 :fetch-next
                 :fetch-all
+                :result-set-column-names
                 :do-sql
                 :begin-transaction
                 :commit
@@ -28,6 +29,7 @@
            :execute
            :fetch-next
            :fetch-all
+           :result-set-column-names
            :do-sql
            :begin-transaction
            :commit

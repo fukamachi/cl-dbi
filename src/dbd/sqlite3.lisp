@@ -4,6 +4,7 @@
 |#
 
 (in-package :cl-user)
+
 (defpackage dbd.sqlite3
   (:use :cl
         :dbi.driver
@@ -24,6 +25,9 @@
 @export
 (defclass <dbd-sqlite3-query> (<dbi-query>) ())
 
+@export
+(defclass <dbd-sqlite3-query-result-set> (<dbi-query-result-set>) ())
+
 (defmethod make-connection ((driver <dbd-sqlite3>) &key database-name)
   (make-instance '<dbd-sqlite3-connection>
      :handle (connect database-name)))
@@ -38,13 +42,14 @@
              :message (sqlite-error-message e)
              :error-code (sqlite-error-code e)))))
 
-(defmethod execute ((query <dbi-query>) params)
+(defmethod execute ((query <dbd-sqlite3-query>) params)
   (reset-statement (query-prepared query))
   (clear-statement-bindings (query-prepared query))
   (let ((count 0))
     (dolist (param params)
       (bind-parameter (query-prepared query) (incf count) param)))
-  query)
+  (make-instance '<dbd-sqlite3-query-result-set>
+                 :query query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
   (handler-case
@@ -54,16 +59,20 @@
              :message (sqlite-error-message e)
              :error-code (sqlite-error-code e)))))
 
-(defmethod fetch-next ((query <dbi-query>))
-  (let ((prepared (query-prepared query)))
+(defmethod result-set-column-names ((rs <dbd-sqlite3-query-result-set>))
+  (loop
+     for column in (statement-column-names (query-prepared (result-set-query rs)))
+     collect (list column)))
+
+(defmethod fetch-next ((result <dbd-sqlite3-query-result-set>))
+  (let ((prepared (query-prepared (result-set-query result))))
     (when (handler-case (step-statement prepared)
             (sqlite-error (e)
               @ignore e
               nil))
       (loop for column in (statement-column-names prepared)
             for i from 0
-            append (list (intern column :keyword)
-                         (statement-column-value prepared i))))))
+            collect (statement-column-value prepared i)))))
 
 (defmethod disconnect ((conn <dbd-sqlite3-connection>))
   (sqlite:disconnect (connection-handle conn)))

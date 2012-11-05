@@ -15,7 +15,9 @@
                 :<dbi-notsupported-error>)
   (:export :connection-handle
            :query-connection
-           :query-prepared))
+           :query-prepared
+           :result-set-query
+           :result-set-column-names))
 (in-package :dbi.driver)
 
 (cl-syntax:use-syntax :annot)
@@ -91,7 +93,14 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (:documentation "Class that represents a prepared DB query."))
 
 @export
-(defgeneric prepare (conn sql &key &allow-other-keys)
+(defclass <dbi-query-result-set> ()
+  ((query :initarg :query :accessor result-set-query)))
+
+(define-dbi-interface result-set-column-names (<dbi-query-result-set>)
+  "Names, according to the underlying database, of the columns in the result set.")
+
+@export
+(defgeneric prepare (<dbi-connection> sql &key &allow-other-keys)
   (:documentation "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
 This method may be overrided by subclasses.")
   (:method ((conn <dbi-connection>) (sql string) &key &allow-other-keys)
@@ -99,7 +108,7 @@ This method may be overrided by subclasses.")
                    :connection conn
                    :prepared (prepare-sql conn sql))))
 
-(define-dbi-interface fetch-next (<dbi-query>)
+(define-dbi-interface fetch-next (<dbi-query-result-set>)
   "Fetch the next row from `query` which is returned by `execute`.")
 
 @export
