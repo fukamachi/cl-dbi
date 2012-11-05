@@ -99,23 +99,13 @@ This method may be overrided by subclasses.")
                    :connection conn
                    :prepared (prepare-sql conn sql))))
 
-@export
-(defmethod execute ((query <dbi-query>) &rest params)
-  "Execute `query` with `params` and return the results."
-  (execute-using-connection
-   (query-connection query)
-   query
-   params))
-
-@export
-(defmethod fetch ((query <dbi-query>))
-  "Fetch the first row from `query` which is returned by `execute`."
-  (fetch-using-connection (query-connection query) query))
+(define-dbi-interface fetch-next (<dbi-query>)
+  "Fetch the next row from `query` which is returned by `execute`.")
 
 @export
 (defmethod fetch-all ((query <dbi-query>))
   "Fetch all rest rows from `query`."
-  (loop for result = (fetch query)
+  (loop for result = (fetch-next query)
         while result
         collect result))
 
@@ -129,8 +119,8 @@ This method may be overrided by subclasses."
   (apply #'execute (prepare conn sql) params)
   nil)
 
-(define-dbi-interface execute-using-connection (<dbi-connection> <dbi-query> params)
-  "Execute `query` in `conn` with query parameters bound to the values PARAMS.")
+(define-dbi-interface execute (<dbi-query> params)
+  "Execute `query`with query parameters bound to the values PARAMS.")
 
 (define-dbi-interface begin-transaction (<dbi-connection>)
   "Start a transaction.")

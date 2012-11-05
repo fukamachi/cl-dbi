@@ -15,7 +15,7 @@
                 :disconnect
                 :prepare
                 :execute
-                :fetch
+                :fetch-next
                 :fetch-all
                 :do-sql
                 :begin-transaction
@@ -26,7 +26,7 @@
            :disconnect
            :prepare
            :execute
-           :fetch
+           :fetch-next
            :fetch-all
            :do-sql
            :begin-transaction

@@ -43,16 +43,18 @@
      ((%result :initform nil)))
 
 (defmethod prepare ((conn <dbd-mysql-connection>) (sql string) &key)
-  (call-next-method conn sql :query-class '<dbd-mysql-query>))
+  (make-instance '<dbd-mysql-query>
+                 :connection conn
+                 :prepared (prepare-sql conn sql)))
 
-(defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-mysql-query>) params)
+(defmethod execute ((query <dbd-mysql-query>) params)
   (let ((result
          (handler-case (query (apply (query-prepared query) params)
-                              :database (connection-handle conn)
+                              :database (connection-handle (query-connection query))
                               :store nil)
            (mysql-error (e)
              ;; reconnect
-             (connect-to-server (slot-value conn 'dbi.driver::%handle))
+             (connect-to-server (slot-value (query-connection query) 'dbi.driver::%handle))
              (error '<dbi-database-error>
                     :message (mysql-error-message e)
                     :error-code (mysql-error-errno e))))))
@@ -61,7 +63,7 @@
     (setf (slot-value query '%result) result)
     query))
 
-(defmethod fetch-using-connection ((conn <dbd-mysql-connection>) query)
+(defmethod fetch-next ((query <dbd-mysql-query>))
   (loop with result = (slot-value query '%result)
         for val in (next-row result)
         for (name . type) in (car (result-set-fields result))

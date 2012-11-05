@@ -21,21 +21,24 @@
 @export
 (defclass <dbd-sqlite3-connection> (<dbi-connection>) ())
 
+@export
+(defclass <dbd-sqlite3-query> (<dbi-query>) ())
+
 (defmethod make-connection ((driver <dbd-sqlite3>) &key database-name)
   (make-instance '<dbd-sqlite3-connection>
      :handle (connect database-name)))
 
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key)
   (handler-case
-      (make-instance '<dbi-query>
-         :connection conn
-         :prepared (prepare-statement (connection-handle conn) sql))
+      (make-instance '<dbd-sqlite3-query>
+                     :connection conn
+                     :prepared (prepare-statement (connection-handle conn) sql))
     (sqlite-error (e)
       (error '<dbi-database-error>
              :message (sqlite-error-message e)
              :error-code (sqlite-error-code e)))))
 
-(defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>) params)
+(defmethod execute ((query <dbi-query>) params)
   (reset-statement (query-prepared query))
   (clear-statement-bindings (query-prepared query))
   (let ((count 0))
@@ -51,8 +54,7 @@
              :message (sqlite-error-message e)
              :error-code (sqlite-error-code e)))))
 
-(defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>))
-  @ignore conn
+(defmethod fetch-next ((query <dbi-query>))
   (let ((prepared (query-prepared query)))
     (when (handler-case (step-statement prepared)
             (sqlite-error (e)

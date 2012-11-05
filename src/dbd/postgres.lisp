@@ -55,22 +55,22 @@
                :message (database-error-message e)
                :error-code (database-error-code e))))))
 
-(defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
-  (exec-prepared (connection-handle conn)
+(defmethod execute ((query <dbd-postgres-query>) params)
+  (exec-prepared (connection-handle (query-connection query))
                  (slot-value query 'name)
                  params
                  ;; TODO: lazy fetching
                  (row-reader (fields)
                    (let ((result
                           (loop while (next-row)
-                                collect (loop for field across fields
-                                              collect (intern (field-name field) :keyword)
-                                              collect (next-field field)))))
+                             collect (loop for field across fields
+                                        collect (intern (field-name field) :keyword)
+                                        collect (next-field field)))))
                      (setf (slot-value query '%result)
                            result)
                      query))))
 
-(defmethod fetch ((query <dbd-postgres-query>))
+(defmethod fetch-next ((query <dbd-postgres-query>))
   (pop (slot-value query '%result)))
 
 (defmethod disconnect ((conn <dbd-postgres-connection>))
