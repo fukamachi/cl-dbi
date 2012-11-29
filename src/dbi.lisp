@@ -83,3 +83,10 @@
          (if ,ok
              (commit ,conn-var)
              (rollback ,conn-var))))))
+
+@export
+(defmacro with-connection ((conn-sym &rest rest) &body body)
+  `(let ((,conn-sym (connect ,@rest)))
+     (unwind-protect
+          (progn ,@body)
+       (disconnect ,conn-sym))))
