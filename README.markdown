@@ -16,6 +16,14 @@
             ;; process "row".
             ))
 
+    ;; Using dbi:with-connection macro.
+    (dbi:with-connection (conn :sqlite3 :database-name "/home/fukamachi/test.db")
+      (let* ((query (dbi:prepare conn "SELECT * FROM People"))
+             (result (dbi:execute query)))
+        (loop for row = (dbi:fetch result)
+              while row
+              do (format t "~A~%" row))))
+
 ## Warning
 
 This library is still under development and considered ALPHA quality. APIs are likely to change.
@@ -53,6 +61,7 @@ This library will be available on Quicklisp when ready for use.
 * begin-transaction [conn]
 * commit [conn]
 * rollback [conn]
+* with-connection [connection-variable-name &body body]
 
 ### Driver-Level API
 
