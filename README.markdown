@@ -2,27 +2,34 @@
 
 ## Usage
 
-    (defvar *connection*
-        (dbi:connect :mysql
-                     :database-name "test"
-                     :username "nobody"
-                     :password "1234"))
+### Connecting and executing a query
 
-    (let ((query (dbi:prepare *connection*
-                   "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?"))
-          (result (dbi:execute query 0 "2011-11-01")))
-      (loop for row = (dbi:fetch result)
-            while row
-            ;; process "row".
-            ))
+```common-lisp
+(defvar *connection*
+  (dbi:connect :mysql
+               :database-name "test"
+               :username "nobody"
+               :password "1234"))
 
-    ;; Using dbi:with-connection macro.
-    (dbi:with-connection (conn :sqlite3 :database-name "/home/fukamachi/test.db")
-      (let* ((query (dbi:prepare conn "SELECT * FROM People"))
-             (result (dbi:execute query)))
-        (loop for row = (dbi:fetch result)
-              while row
-              do (format t "~A~%" row))))
+(let* ((query (dbi:prepare *connection*
+                           "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?"))
+       (result (dbi:execute query 0 "2011-11-01")))
+  (loop for row = (dbi:fetch result)
+     while row
+     ;; process "row".
+       ))
+```
+
+### Using `dbi:with-connection` to ensure connections are closed
+
+```common-lisp
+(dbi:with-connection (conn :sqlite3 :database-name "/home/fukamachi/test.db")
+  (let* ((query (dbi:prepare conn "SELECT * FROM People"))
+         (result (dbi:execute query)))
+    (loop for row = (dbi:fetch result)
+       while row
+       do (format t "~A~%" row))))
+```
 
 ## Warning
 
