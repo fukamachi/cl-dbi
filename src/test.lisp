@@ -50,6 +50,9 @@
     (let ((result (fetch result)))
       (is-type result '(non-nil property-list))
       (is (getf result :|name|) "matsuyama"))
+    (is (fetch result) nil))
+  (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
+         (result (execute query nil)))
     (is (fetch result) nil)))
 
 (deftest |place holder|
