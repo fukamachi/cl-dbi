@@ -19,14 +19,18 @@
                :trivial-types)
   :components ((:module "src"
                 :components
-                ((:file "test")))
+                ((:test-file "test")))
                (:module "t"
                 :depends-on ("src")
                 :components
-                ((:file "driver")
+                ((:test-file "driver")
                  (:module "dbd"
                   :components
-                  ((:file "sqlite3")
-                   (:file "postgres")
-                   (:file "mysql"))))))
-  :perform (load-op :after (op c) (asdf:clear-system c)))
+                  ((:test-file "sqlite3")
+                   (:test-file "postgres")
+                   (:test-file "mysql"))))))
+
+  :defsystem-depends-on (:cl-test-more)
+  :perform (test-op :after (op c)
+                    (funcall (intern #. (string :run-test-system) :cl-test-more)
+                             c)))
