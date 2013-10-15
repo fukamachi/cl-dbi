@@ -16,6 +16,8 @@
                 :connect-to-server
                 :mysql-error-message
                 :mysql-error-errno
+                :release
+                :connections
                 :return-or-close
                 :owner-pool))
 (in-package :dbd.mysql)
@@ -51,11 +53,18 @@
                               :database (connection-handle conn)
                               :store nil)
            (mysql-error (e)
-             ;; reconnect
-             (connect-to-server (slot-value conn 'dbi.driver::%handle))
-             (error '<dbi-database-error>
-                    :message (mysql-error-message e)
-                    :error-code (mysql-error-errno e))))))
+             (unwind-protect (error '<dbi-database-error>
+                                    :message (mysql-error-message e)
+                                    :error-code (mysql-error-errno e))
+               ;; KLUDGE: I think this should be done in cl-mysql.
+               ;;   cl-mysql doesn't release the connection when a MySQL error has occurred.
+               ;;   Though I can't tell which connection is used for the query,
+               ;;   I assume the first one is the one.
+               (let* ((handle (connection-handle conn))
+                      (connections (cl-mysql-system:connections handle)))
+                 (when (> (length connections) 0)
+                   (cl-mysql-system:release handle
+                                            (aref connections 0)))))))))
     (return-or-close (owner-pool result) result)
     (next-result-set result)
     (setf (slot-value query '%result) result)
