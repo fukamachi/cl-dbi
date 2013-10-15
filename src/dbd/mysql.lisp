@@ -18,6 +18,7 @@
                 :mysql-error-errno
                 :release
                 :connections
+                :in-use
                 :return-or-close
                 :owner-pool))
 (in-package :dbd.mysql)
@@ -61,10 +62,11 @@
                ;;   Though I can't tell which connection is used for the query,
                ;;   I assume the first one is the one.
                (let* ((handle (connection-handle conn))
-                      (connections (cl-mysql-system:connections handle)))
-                 (when (> (length connections) 0)
-                   (cl-mysql-system:release handle
-                                            (aref connections 0)))))))))
+                      (using-connections (cl-mysql-system:connections handle))
+                      (connection (and (> (length using-connections) 0)
+                                       (aref using-connections 0))))
+                 (when (and connection (in-use connection))
+                   (cl-mysql-system:release handle connection))))))))
     (return-or-close (owner-pool result) result)
     (next-result-set result)
     (setf (slot-value query '%result) result)
