@@ -68,6 +68,7 @@ This library will be available on Quicklisp when ready for use.
 * begin-transaction [conn]
 * commit [conn]
 * rollback [conn]
+* ping [conn] =&gt; T or NIL
 * with-connection [connection-variable-name &body body]
 
 ### Driver-Level API
@@ -84,6 +85,7 @@ This library will be available on Quicklisp when ready for use.
 * begin-transaction [conn]
 * commit [conn]
 * rollback [conn]
+* ping [conn] =&gt; T or NIL
 
 ## Creating a new driver
 
