@@ -21,7 +21,8 @@
   :depends-on (:dbi
                :sqlite
                :cl-syntax
-               :cl-syntax-annot)
+               :cl-syntax-annot
+               :osicat)
   :components ((:module "src/dbd"
                 :components
                 ((:file "sqlite3"))))

@@ -10,7 +10,9 @@
         :dbi.error
         :sqlite)
   (:shadowing-import-from :dbi.driver
-                          :disconnect))
+                          :disconnect)
+  (:import-from :osicat
+                :regular-file-exists-p))
 (in-package :dbd.sqlite3)
 
 (cl-syntax:use-syntax :annot)
@@ -74,3 +76,12 @@
 
 (defmethod rollback ((conn <dbd-sqlite3-connection>))
   (sqlite:execute-non-query (connection-handle conn) "ROLLBACK TRANSACTION"))
+
+(defmethod ping ((conn <dbd-sqlite3-connection>))
+  "Return T if the database file exists or the database is in-memory."
+  (let* ((handle (connection-handle conn))
+         (database-path (sqlite::database-path handle)))
+    (cond
+      ((string= database-path ":memory:") T)
+      ((osicat:regular-file-exists-p database-path) T)
+      (T nil))))

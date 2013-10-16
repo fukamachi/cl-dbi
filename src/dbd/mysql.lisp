@@ -10,7 +10,8 @@
         :dbi.error
         :cl-mysql)
   (:shadowing-import-from :dbi.driver
-                          :disconnect)
+                          :disconnect
+                          :ping)
   (:import-from :cl-mysql-system
                 :mysql-error
                 :connect-to-server
@@ -20,7 +21,8 @@
                 :connections
                 :in-use
                 :return-or-close
-                :owner-pool))
+                :owner-pool
+                :+server-gone-error+))
 (in-package :dbd.mysql)
 
 (cl-syntax:use-syntax :annot)
@@ -92,3 +94,10 @@
 
 (defmethod rollback ((conn <dbd-mysql-connection>))
   (do-sql conn "ROLLBACK"))
+
+(defmethod ping ((conn <dbd-mysql-connection>))
+  (handler-case (cl-mysql:ping :database (connection-handle conn))
+    (mysql-error (e)
+      (if (= +server-gone-error+ (mysql-error-errno e))
+          nil
+          (signal e)))))

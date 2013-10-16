@@ -9,10 +9,17 @@
         :dbi.driver
         :dbi.error
         :cl-postgres)
+  (:import-from :cl-postgres
+                :connection-socket
+                :send-parse)
   (:import-from :cl-postgres-error
                 :syntax-error-or-access-violation
                 :database-error-message
-                :database-error-code))
+                :database-error-code
+
+                :admin-shutdown
+                :crash-shutdown
+                :cannot-connect-now))
 (in-package :dbd.postgres)
 
 (cl-syntax:use-syntax :annot)
@@ -84,3 +91,18 @@
 
 (defmethod rollback ((conn <dbd-postgres-connection>))
   (do-sql conn "ROLLBACK"))
+
+(defmethod ping ((conn <dbd-postgres-connection>))
+  (let ((handle (connection-handle conn)))
+    (handler-case
+        (and (database-open-p handle)
+             (progn
+               (cl-postgres::send-parse (cl-postgres::connection-socket handle)
+                                        (symbol-name (gensym "PING"))
+                                        "")
+               t))
+      ((cl-postgres-error:admin-shutdown
+        cl-postgres-error:crash-shutdown
+        cl-postgres-error:cannot-connect-now) (e)
+        @ignore e
+        nil))))

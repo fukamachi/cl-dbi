@@ -157,6 +157,13 @@ This method must be implemented in each drivers."
          :method-name 'rollback))
 
 @export
+(defmethod ping ((conn <dbi-connection>))
+  "Check if the database server is still running and the connection to it is still working."
+  @ignore conn
+  (error '<dbi-notsupported-error>
+         :method-name 'ping))
+
+@export
 (defmethod escape-sql ((conn <dbi-connection>) (sql string))
   "Return escaped `sql`.
 This method may be overrided by subclasses when needed.

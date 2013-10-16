@@ -20,7 +20,8 @@
                 :do-sql
                 :begin-transaction
                 :commit
-                :rollback)
+                :rollback
+                :ping)
   (:export :list-all-drivers
            :find-driver
            :disconnect
@@ -32,6 +33,7 @@
            :begin-transaction
            :commit
            :rollback
+           :ping
 
            :<dbi-error>
            :<dbi-warning>
