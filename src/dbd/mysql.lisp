@@ -8,7 +8,10 @@
   (:use :cl
         :dbi.driver
         :dbi.error
-        :cl-mysql)
+        :cl-mysql
+        :annot.class)
+  (:shadow :result-set-fields
+           :next-row)
   (:shadowing-import-from :dbi.driver
                           :disconnect
                           :ping)
@@ -44,17 +47,36 @@
                       :client-flag client-flag)))
 
 @export
+@export-accessors
 (defclass <dbd-mysql-query> (<dbi-query>)
-     ((%result :initform nil)))
+     ((%result :initform nil)
+      (store :initarg :store :initform T
+             :accessor mysql-use-store)))
 
-(defmethod prepare ((conn <dbd-mysql-connection>) (sql string) &key)
-  (call-next-method conn sql :query-class '<dbd-mysql-query>))
+(defstruct (mysql-result-list (:constructor make-mysql-result-list (result-set fields)))
+  (result-set nil :type list)
+  (fields nil :type list))
+
+(defun result-set-fields (result)
+  (if (mysql-result-list-p result)
+      (slot-value result 'fields)
+      (car (cl-mysql:result-set-fields result))))
+
+(defun next-row (result)
+  (if (mysql-result-list-p result)
+      (pop (slot-value result 'result-set))
+      (cl-mysql:next-row result)))
+
+(defmethod prepare ((conn <dbd-mysql-connection>) (sql string) &key (store T))
+  (let ((query (call-next-method conn sql :query-class '<dbd-mysql-query>)))
+    (setf (mysql-use-store query) store)
+    query))
 
 (defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-mysql-query>) params)
   (let ((result
          (handler-case (query (apply (query-prepared query) params)
                               :database (connection-handle conn)
-                              :store nil)
+                              :store (mysql-use-store query))
            (mysql-error (e)
              (unwind-protect (error '<dbi-database-error>
                                     :message (mysql-error-message e)
@@ -69,15 +91,19 @@
                                        (aref using-connections 0))))
                  (when (and connection (in-use connection))
                    (cl-mysql-system:release handle connection))))))))
-    (return-or-close (owner-pool result) result)
-    (next-result-set result)
+    (if (mysql-use-store query)
+        (setf result
+              (apply #'make-mysql-result-list (car result)))
+        (progn
+          (return-or-close (owner-pool result) result)
+          (next-result-set result)))
     (setf (slot-value query '%result) result)
     query))
 
 (defmethod fetch-using-connection ((conn <dbd-mysql-connection>) query)
   (loop with result = (slot-value query '%result)
         for val in (next-row result)
-        for (name . type) in (car (result-set-fields result))
+        for (name . type) in (result-set-fields result)
         append (list (intern name :keyword) val)))
 
 (defmethod escape-sql ((conn <dbd-mysql-connection>) (sql string))
