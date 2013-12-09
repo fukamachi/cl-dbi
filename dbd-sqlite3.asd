@@ -22,7 +22,7 @@
                :sqlite
                :cl-syntax
                :cl-syntax-annot
-               :osicat)
+               :uiop)
   :components ((:module "src/dbd"
                 :components
                 ((:file "sqlite3"))))

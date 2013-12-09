@@ -11,8 +11,8 @@
         :sqlite)
   (:shadowing-import-from :dbi.driver
                           :disconnect)
-  (:import-from :osicat
-                :regular-file-exists-p))
+  (:import-from :uiop/filesystem
+                :file-exists-p))
 (in-package :dbd.sqlite3)
 
 (cl-syntax:use-syntax :annot)
@@ -83,5 +83,5 @@
          (database-path (sqlite::database-path handle)))
     (cond
       ((string= database-path ":memory:") T)
-      ((osicat:regular-file-exists-p database-path) T)
+      ((uiop:file-exists-p database-path) T)
       (T nil))))
