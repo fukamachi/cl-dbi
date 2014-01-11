@@ -35,6 +35,14 @@
   (:documentation "Base class for managing DB connection."))
 
 @export
+(defmethod connection-driver-type ((conn <dbi-connection>))
+  (let ((package (package-name (symbol-package (type-of conn)))))
+    (cond
+      ((string= package #.(string :dbd.mysql))    :mysql)
+      ((string= package #.(string :dbd.postgres)) :postgres)
+      ((string= package #.(string :dbd.sqlite3))  :sqlite3))))
+
+@export
 (defmethod make-connection ((driver <dbi-driver>) &key)
   "Create a instance of `<dbi-connection>` for the `driver`.
 This method must be implemented in each drivers."

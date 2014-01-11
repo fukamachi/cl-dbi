@@ -11,6 +11,7 @@
   (:import-from :dbi.driver
                 :list-all-drivers
                 :find-driver
+                :connection-driver-type
                 :make-connection
                 :disconnect
                 :prepare
@@ -24,6 +25,7 @@
                 :ping)
   (:export :list-all-drivers
            :find-driver
+           :connection-driver-type
            :disconnect
            :prepare
            :execute
