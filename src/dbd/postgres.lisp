@@ -63,19 +63,24 @@
                :error-code (database-error-code e))))))
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
-  (exec-prepared (connection-handle conn)
-                 (slot-value query 'name)
-                 params
-                 ;; TODO: lazy fetching
-                 (row-reader (fields)
-                   (let ((result
-                          (loop while (next-row)
-                                collect (loop for field across fields
-                                              collect (intern (field-name field) :keyword)
-                                              collect (next-field field)))))
-                     (setf (slot-value query '%result)
-                           result)
-                     query))))
+  (handler-case
+      (exec-prepared (connection-handle conn)
+                     (slot-value query 'name)
+                     params
+                     ;; TODO: lazy fetching
+                     (row-reader (fields)
+                       (let ((result
+                               (loop while (next-row)
+                                     collect (loop for field across fields
+                                                   collect (intern (field-name field) :keyword)
+                                                   collect (next-field field)))))
+                         (setf (slot-value query '%result)
+                               result)
+                         query)))
+    (syntax-error-or-access-violation (e)
+      (error '<dbi-programming-error>
+             :message (database-error-message e)
+             :error-code (database-error-code e)))))
 
 (defmethod fetch ((query <dbd-postgres-query>))
   (pop (slot-value query '%result)))
