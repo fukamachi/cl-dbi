@@ -32,6 +32,7 @@
 
 (defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no))
   (make-instance '<dbd-postgres-connection>
+     :database-name database-name
      :handle (open-database database-name username password host port use-ssl)))
 
 @export

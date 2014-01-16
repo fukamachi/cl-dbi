@@ -6,15 +6,13 @@
 (in-package :cl-user)
 (defpackage dbi.driver
   (:use :cl
+        :annot.class
         :split-sequence)
   (:import-from :c2mop
                 :class-direct-subclasses)
   (:import-from :dbi.error
                 :<dbi-unimplemented-error>
-                :<dbi-notsupported-error>)
-  (:export :connection-handle
-           :query-connection
-           :query-prepared))
+                :<dbi-notsupported-error>))
 (in-package :dbi.driver)
 
 (cl-syntax:use-syntax :annot)
@@ -26,10 +24,13 @@
   (:documentation "Base class for DB driver."))
 
 @export
+@export-accessors
 (defclass <dbi-connection> ()
      ((auto-commit :type boolean
                    :initarg :auto-commit
                    :initform t)
+      (database-name :initarg :database-name
+                     :accessor connection-database-name)
       (%handle :initarg :handle
                :accessor connection-handle))
   (:documentation "Base class for managing DB connection."))
@@ -73,6 +74,7 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
   (c2mop:class-direct-subclasses (find-class '<dbi-driver>)))
 
 @export
+@export-accessors
 (defclass <dbi-query> ()
      ((connection :type <dbi-connection>
                   :initarg :connection

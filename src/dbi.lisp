@@ -12,6 +12,7 @@
                 :list-all-drivers
                 :find-driver
                 :connection-driver-type
+                :connection-database-name
                 :make-connection
                 :disconnect
                 :prepare
@@ -26,6 +27,7 @@
   (:export :list-all-drivers
            :find-driver
            :connection-driver-type
+           :connection-database-name
            :disconnect
            :prepare
            :execute

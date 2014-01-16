@@ -38,6 +38,7 @@
 
 (defmethod make-connection ((driver <dbd-mysql>) &key host database-name username password port socket client-flag)
   (make-instance '<dbd-mysql-connection>
+     :database-name database-name
      :handle (connect :host host
                       :database database-name
                       :user username

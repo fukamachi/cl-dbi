@@ -25,6 +25,7 @@
 
 (defmethod make-connection ((driver <dbd-sqlite3>) &key database-name busy-timeout)
   (make-instance '<dbd-sqlite3-connection>
+     :database-name database-name
      :handle (connect database-name :busy-timeout busy-timeout)))
 
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key)
