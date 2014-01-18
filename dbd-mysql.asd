@@ -24,5 +24,6 @@
                :cl-syntax-annot)
   :components ((:module "src/dbd"
                 :components
-                ((:file "mysql"))))
+                ((:file "mysql" :depends-on ("mysql/error"))
+                 (:file "mysql/error"))))
   :description "Database driver for MySQL.")

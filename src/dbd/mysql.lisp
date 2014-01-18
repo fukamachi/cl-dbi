@@ -7,7 +7,6 @@
 (defpackage dbd.mysql
   (:use :cl
         :dbi.driver
-        :dbi.error
         :cl-mysql
         :annot.class)
   (:shadow :result-set-fields
@@ -15,14 +14,12 @@
   (:shadowing-import-from :dbi.driver
                           :disconnect
                           :ping)
+  (:import-from :dbd.mysql.error
+                :with-error-handler)
   (:import-from :cl-mysql-system
                 :mysql-error
-                :connect-to-server
-                :mysql-error-message
                 :mysql-error-errno
-                :release
-                :connections
-                :in-use
+                :connect-to-server
                 :return-or-close
                 :owner-pool
                 :+server-gone-error+))
@@ -75,23 +72,10 @@
 
 (defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-mysql-query>) params)
   (let ((result
-         (handler-case (query (apply (query-prepared query) params)
-                              :database (connection-handle conn)
-                              :store (mysql-use-store query))
-           (mysql-error (e)
-             (unwind-protect (error '<dbi-database-error>
-                                    :message (mysql-error-message e)
-                                    :error-code (mysql-error-errno e))
-               ;; KLUDGE: I think this should be done in cl-mysql.
-               ;;   cl-mysql doesn't release the connection when a MySQL error has occurred.
-               ;;   Though I can't tell which connection is used for the query,
-               ;;   I assume the first one is the one.
-               (let* ((handle (connection-handle conn))
-                      (using-connections (cl-mysql-system:connections handle))
-                      (connection (and (> (length using-connections) 0)
-                                       (aref using-connections 0))))
-                 (when (and connection (in-use connection))
-                   (cl-mysql-system:release handle connection))))))))
+          (with-error-handler conn
+            (query (apply (query-prepared query) params)
+                   :database (connection-handle conn)
+                   :store (mysql-use-store query)))))
     (if (mysql-use-store query)
         (setf result
               (apply #'make-mysql-result-list (car result)))
@@ -104,7 +88,7 @@
 (defmethod fetch-using-connection ((conn <dbd-mysql-connection>) query)
   (loop with result = (slot-value query '%result)
         for val in (next-row result)
-        for (name . type) in (result-set-fields result)
+        for (name . nil) in (result-set-fields result)
         append (list (intern name :keyword) val)))
 
 (defmethod escape-sql ((conn <dbd-mysql-connection>) (sql string))
