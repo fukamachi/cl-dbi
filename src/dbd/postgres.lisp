@@ -13,6 +13,7 @@
                 :connection-socket
                 :send-parse)
   (:import-from :cl-postgres-error
+                :database-error
                 :syntax-error-or-access-violation
                 :database-error-message
                 :database-error-code
@@ -61,6 +62,10 @@
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
                :message (database-error-message e)
+               :error-code (database-error-code e)))
+      (database-error (e)
+        (error '<dbi-database-error>
+               :message (database-error-message e)
                :error-code (database-error-code e))))))
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
@@ -80,6 +85,10 @@
                          query)))
     (syntax-error-or-access-violation (e)
       (error '<dbi-programming-error>
+             :message (database-error-message e)
+             :error-code (database-error-code e)))
+    (database-error (e)
+      (error '<dbi-database-error>
              :message (database-error-message e)
              :error-code (database-error-code e)))))
 
