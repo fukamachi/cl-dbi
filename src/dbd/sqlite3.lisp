@@ -34,9 +34,13 @@
          :connection conn
          :prepared (prepare-statement (connection-handle conn) sql))
     (sqlite-error (e)
-      (error '<dbi-database-error>
-             :message (sqlite-error-message e)
-             :error-code (sqlite-error-code e)))))
+      (if (eq (sqlite-error-code e) :error)
+          (error '<dbi-programming-error>
+                 :message (sqlite-error-message e)
+                 :error-code (sqlite-error-code e))
+          (error '<dbi-database-error>
+                 :message (sqlite-error-message e)
+                 :error-code (sqlite-error-code e))))))
 
 (defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>) params)
   (reset-statement (query-prepared query))
@@ -50,9 +54,13 @@
   (handler-case
       (apply #'execute-non-query (connection-handle conn) sql params)
     (sqlite-error (e)
-      (error '<dbi-database-error>
-             :message (sqlite-error-message e)
-             :error-code (sqlite-error-code e)))))
+      (if (eq (sqlite-error-code e) :error)
+          (error '<dbi-programming-error>
+                 :message (sqlite-error-message e)
+                 :error-code (sqlite-error-code e))
+          (error '<dbi-database-error>
+                 :message (sqlite-error-message e)
+                 :error-code (sqlite-error-code e))))))
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>))
   @ignore conn
