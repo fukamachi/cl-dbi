@@ -19,7 +19,7 @@
                :trivial-types)
   :components ((:module "src"
                 :components
-                ((:test-file "test")))
+                ((:file "test")))
                (:module "t"
                 :depends-on ("src")
                 :components
