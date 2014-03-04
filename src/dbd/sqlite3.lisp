@@ -28,9 +28,12 @@
      :database-name database-name
      :handle (connect database-name :busy-timeout busy-timeout)))
 
+(defclass <dbd-sqlite3-query> (<dbi-query>)
+  (%first-result))
+
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key)
   (handler-case
-      (make-instance '<dbi-query>
+      (make-instance '<dbd-sqlite3-query>
          :connection conn
          :prepared (prepare-statement (connection-handle conn) sql))
     (sqlite-error (e)
@@ -42,13 +45,16 @@
                  :message (sqlite-error-message e)
                  :error-code (sqlite-error-code e))))))
 
-(defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>) params)
-  (reset-statement (query-prepared query))
-  (clear-statement-bindings (query-prepared query))
-  (let ((count 0))
-    (dolist (param params)
-      (bind-parameter (query-prepared query) (incf count) param)))
-  query)
+(defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>) params)
+  (let ((prepared (query-prepared query)))
+    (reset-statement prepared)
+    (clear-statement-bindings prepared)
+    (let ((count 0))
+      (dolist (param params)
+        (bind-parameter prepared (incf count) param)))
+    (setf (slot-value query '%first-result)
+          (fetch-using-connection conn query))
+    query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
   (handler-case
@@ -62,17 +68,21 @@
                  :message (sqlite-error-message e)
                  :error-code (sqlite-error-code e))))))
 
-(defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbi-query>))
+(defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>))
   @ignore conn
-  (let ((prepared (query-prepared query)))
-    (when (handler-case (step-statement prepared)
-            (sqlite-error (e)
-              @ignore e
-              nil))
-      (loop for column in (statement-column-names prepared)
-            for i from 0
-            append (list (intern column :keyword)
-                         (statement-column-value prepared i))))))
+  (if (slot-boundp query '%first-result)
+      (prog1
+          (slot-value query '%first-result)
+        (slot-makunbound query '%first-result))
+      (let ((prepared (query-prepared query)))
+        (when (handler-case (step-statement prepared)
+                (sqlite-error (e)
+                  @ignore e
+                  nil))
+          (loop for column in (statement-column-names prepared)
+                for i from 0
+                append (list (intern column :keyword)
+                             (statement-column-value prepared i)))))))
 
 (defmethod disconnect ((conn <dbd-sqlite3-connection>))
   (sqlite:disconnect (connection-handle conn)))

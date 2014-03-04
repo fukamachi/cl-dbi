@@ -53,7 +53,12 @@
     (is (fetch result) nil))
   (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
          (result (execute query nil)))
-    (is (fetch result) nil)))
+    (is (fetch result) nil))
+
+  (execute (prepare *db* "INSERT INTO person (id, name) VALUES (3, 'snmsts')"))
+  (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
+         (result (execute query "snmsts")))
+    (is (getf (fetch result) :|name|) "snmsts")))
 
 (deftest |place holder|
   (let (query result)
@@ -68,11 +73,11 @@
   (handler-case
       (progn
         (with-transaction *db*
-          (do-sql *db* "INSERT INTO person (id, name) VALUES (3, 'meymao')"))
+          (do-sql *db* "INSERT INTO person (id, name) VALUES (4, 'meymao')"))
         (is (fetch (execute (prepare *db* "SELECT * FROM person WHERE name = 'meymao'")))
-            '(:|id| 3 :|name| "meymao")))
-    (dbi.error:<dbi-notsupported-error> (condition)
-     (skip 1 "Not supported"))))
+            '(:|id| 4 :|name| "meymao")))
+    (dbi.error:<dbi-notsupported-error> ()
+      (skip 1 "Not supported"))))
 
 (deftest |statement error|
   (is-type (handler-case (do-sql *db* "INSERT")
@@ -81,4 +86,4 @@
   (is-type (handler-case (execute (prepare *db* "SELECT SELECT SELECT"))
              (error (e) e))
            '<dbi-database-error>)
-  (do-sql *db* "INSERT INTO person (id, name) VALUES (4, 'mizuna')"))
+  (do-sql *db* "INSERT INTO person (id, name) VALUES (5, 'mizuna')"))
