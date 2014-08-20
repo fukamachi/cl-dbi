@@ -36,37 +36,39 @@
   (:documentation "Base class for managing DB connection."))
 
 @export
-(defmethod connection-driver-type ((conn <dbi-connection>))
-  (let ((package (package-name (symbol-package (type-of conn)))))
-    (cond
-      ((string= package #.(string :dbd.mysql))    :mysql)
-      ((string= package #.(string :dbd.postgres)) :postgres)
-      ((string= package #.(string :dbd.sqlite3))  :sqlite3))))
+(defgeneric connection-driver-type (conn)
+  (:method ((conn <dbi-connection>))
+    (let ((package (package-name (symbol-package (type-of conn)))))
+      (cond
+        ((string= package #.(string :dbd.mysql))    :mysql)
+        ((string= package #.(string :dbd.postgres)) :postgres)
+        ((string= package #.(string :dbd.sqlite3))  :sqlite3)))))
 
 @export
-(defmethod make-connection ((driver <dbi-driver>) &key)
-  "Create a instance of `<dbi-connection>` for the `driver`.
-This method must be implemented in each drivers."
-  @ignore driver
-  (error '<dbi-unimplemented-error>
-         :method-name 'make-connection))
+(defgeneric make-connection (driver &key)
+  (:documentation "Create a instance of `<dbi-connection>` for the `driver`.
+This method must be implemented in each drivers.")
+  (:method ((driver <dbi-driver>) &key)
+    @ignore driver
+    (error '<dbi-unimplemented-error>
+           :method-name 'make-connection)))
 
 @export
-(defmethod disconnect ((conn <dbi-connection>))
-  @ignore conn
-  (error '<dbi-unimplemented-error>
-         :method-name 'disconnect))
+(defgeneric disconnect (conn)
+  (:method ((conn <dbi-connection>))
+    @ignore conn
+    (error '<dbi-unimplemented-error>
+           :method-name 'disconnect)))
 
 @export
 (defun find-driver (driver-name)
   "Find a driver class named as `driver-name`.
 `driver-name` is a string designer.
 Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
-  (find-if
-   (lambda (class)
-     (string= (format nil "<DBD-~:@(~A~)>" driver-name)
-              (class-name class)))
-   (list-all-drivers)))
+  (find (format nil "<DBD-~:@(~A~)>" driver-name)
+        (list-all-drivers)
+        :test #'string=
+        :key #'class-name))
 
 @export
 (defun list-all-drivers ()
@@ -97,44 +99,58 @@ This method may be overrided by subclasses."
      :prepared (prepare-sql conn sql)))
 
 @export
-(defmethod execute ((query <dbi-query>) &rest params)
-  "Execute `query` with `params` and return the results."
-  (execute-using-connection
-   (query-connection query)
-   query
-   params))
+(defgeneric execute (query &rest params)
+  (:documentation "Execute `query` with `params` and return the results.")
+  (:method ((query <dbi-query>) &rest params)
+    (execute-using-connection
+     (query-connection query)
+     query
+     params)))
 
 @export
-(defmethod fetch ((query <dbi-query>))
-  "Fetch the first row from `query` which is returned by `execute`."
-  (fetch-using-connection (query-connection query) query))
+(defgeneric fetch (query)
+  (:documentation "Fetch the first row from `query` which is returned by `execute`.")
+  (:method ((query <dbi-query>))
+    (fetch-using-connection (query-connection query) query)))
 
 @export
-(defmethod fetch-all ((query <dbi-query>))
-  "Fetch all rest rows from `query`."
-  (loop for result = (fetch query)
-        while result
-        collect result))
+(defgeneric fetch-all (query)
+  (:documentation "Fetch all rest rows from `query`.")
+  (:method ((query <dbi-query>))
+    (loop for result = (fetch query)
+          while result
+          collect result)))
 
 @export
-(defmethod fetch-using-connection ((conn <dbi-connection>) (query <dbi-query>))
-  (error '<dbi-unimplemented-error>
-         :method-name 'fetch-using-connection))
+(defgeneric fetch-using-connection (conn query)
+  (:method ((conn <dbi-connection>) (query <dbi-query>))
+    (error '<dbi-unimplemented-error>
+           :method-name 'fetch-using-connection)))
 
 @export
-(defmethod do-sql ((conn <dbi-connection>) (sql string) &rest params)
-  "Do preparation and execution at once.
-This method may be overrided by subclasses."
-  (apply #'execute (prepare conn sql) params)
-  nil)
+(defgeneric do-sql (conn sql &rest params)
+  (:documentation "Do preparation and execution at once.
+This method may be overrided by subclasses.")
+  (:method ((conn <dbi-connection>) (sql string) &rest params)
+    (apply #'execute (prepare conn sql) params)
+    nil))
 
 @export
-(defmethod execute-using-connection ((conn <dbi-connection>) (query <dbi-query>) params)
-  "Execute `query` in `conn`.
-This method must be implemented in each drivers."
-  @ignore (conn query params)
-  (error '<dbi-unimplemented-error>
-         :method-name 'execute-using-connection))
+(defgeneric execute-using-connection (conn query params)
+  (:documentation "Execute `query` in `conn`.
+This method must be implemented in each drivers.")
+  (:method ((conn <dbi-connection>) (query <dbi-query>) params)
+    @ignore (conn query params)
+    (error '<dbi-unimplemented-error>
+           :method-name 'execute-using-connection)))
+
+@export
+(defgeneric begin-transaction (conn)
+  (:documentation "Start a transaction.")
+  (:method ((conn <dbi-connection>))
+    @ignore conn
+    (error '<dbi-notsupported-error>
+           :method-name 'begin-transaction)))
 
 @export
 (defmethod begin-transaction :around ((conn <dbi-connection>))
@@ -146,62 +162,62 @@ This method must be implemented in each drivers."
          (setf auto-commit saved)))))
 
 @export
-(defmethod begin-transaction ((conn <dbi-connection>))
-  "Start a transaction."
-  @ignore conn
-  (error '<dbi-notsupported-error>
-         :method-name 'begin-transaction))
+(defgeneric commit (conn)
+  (:documentation "Commit changes and end the current transaction.")
+  (:method ((conn <dbi-connection>))
+    @ignore conn
+    (error '<dbi-notsupported-error>
+           :method-name 'commit)))
 
 @export
-(defmethod commit ((conn <dbi-connection>))
-  "Commit changes and end the current transaction."
-  @ignore conn
-  (error '<dbi-notsupported-error>
-         :method-name 'commit))
+(defgeneric rollback (conn)
+  (:documentation "Rollback all changes and end the current transaction.")
+  (:method ((conn <dbi-connection>))
+    @ignore conn
+    (error '<dbi-notsupported-error>
+           :method-name 'rollback)))
 
 @export
-(defmethod rollback ((conn <dbi-connection>))
-  "Rollback all changes and end the current transaction."
-  @ignore conn
-  (error '<dbi-notsupported-error>
-         :method-name 'rollback))
+(defgeneric ping (conn)
+  (:documentation
+   "Check if the database server is still running and the connection to it is still working.")
+  (:method ((conn <dbi-connection>))
+    @ignore conn
+    (error '<dbi-notsupported-error>
+           :method-name 'ping)))
 
 @export
-(defmethod ping ((conn <dbi-connection>))
-  "Check if the database server is still running and the connection to it is still working."
-  @ignore conn
-  (error '<dbi-notsupported-error>
-         :method-name 'ping))
-
-@export
-(defmethod escape-sql ((conn <dbi-connection>) (sql string))
-  "Return escaped `sql`.
+(defgeneric escape-sql (conn sql)
+  (:documentation "Return escaped `sql`.
 This method may be overrided by subclasses when needed.
-For example, in case of MySQL and PostgreSQL, backslashes must be escaped by doubling it."
-  (with-output-to-string (out)
-    (loop for c across sql
-          if (char= c #\')
-            do (write-sequence "''" out)
-          else
-            do (write-char c out))))
+For example, in case of MySQL and PostgreSQL, backslashes must be escaped by doubling it.")
+  (:method ((conn <dbi-connection>) (sql string))
+    (with-output-to-string (out)
+      (loop for c across sql
+            if (char= c #\')
+              do (write-sequence "''" out)
+            else
+              do (write-char c out)))))
 
-(defmethod prepare-sql ((conn <dbi-connection>) (sql string))
-  "Create a function that takes parameters, binds them into a query and returns SQL as a string."
-  (labels ((param-to-sql (param)
-             (typecase param
-               (string (concatenate 'string "'" (escape-sql conn param) "'"))
-               (null "NULL")
-               (t (princ-to-string param)))))
-    (let ((sql-parts (split-sequence #\? sql)))
-      (lambda (&rest params)
-        (if params
-            (with-output-to-string (out)
-              (loop for (part . rest) on sql-parts
-                    do
-                 (let ((param (pop params)))
-                   (write-sequence
-                    (if rest
-                        (concatenate 'string part (param-to-sql param))
-                        part)
-                    out))))
-            sql)))))
+(defgeneric prepare-sql (conn sql)
+  (:documentation
+   "Create a function that takes parameters, binds them into a query and returns SQL as a string.")
+  (:method ((conn <dbi-connection>) (sql string))
+    (labels ((param-to-sql (param)
+               (typecase param
+                 (string (concatenate 'string "'" (escape-sql conn param) "'"))
+                 (null "NULL")
+                 (t (princ-to-string param)))))
+      (let ((sql-parts (split-sequence #\? sql)))
+        (lambda (&rest params)
+          (if params
+              (with-output-to-string (out)
+                (loop for (part . rest) on sql-parts
+                      do
+                         (let ((param (pop params)))
+                           (write-sequence
+                            (if rest
+                                (concatenate 'string part (param-to-sql param))
+                                part)
+                            out))))
+              sql))))))
