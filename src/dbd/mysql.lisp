@@ -86,10 +86,14 @@
     query))
 
 (defmethod fetch-using-connection ((conn <dbd-mysql-connection>) query)
-  (loop with result = (slot-value query '%result)
-        for val in (next-row result)
-        for (name . nil) in (result-set-fields result)
-        append (list (intern name :keyword) val)))
+  (let* ((result (slot-value query '%result))
+         (row (next-row result))
+         (fields (result-set-fields result)))
+    (if (listp row)
+        (loop for val in row
+              for (field . nil) in fields
+              append (list (intern field :keyword) val))
+        row)))
 
 (defmethod escape-sql ((conn <dbd-mysql-connection>) (sql string))
   (escape-string sql :database (connection-handle conn)))

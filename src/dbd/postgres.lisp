@@ -38,8 +38,9 @@
 
 @export
 (defclass <dbd-postgres-query> (<dbi-query>)
-     ((name :initarg :name)
-      (%result :initform nil)))
+  ((name :initarg :name)
+   (%result :initarg :%result
+            :initform nil)))
 
 (defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
   (let ((name (symbol-name (gensym "PREPARED-STATEMENT"))))
@@ -70,19 +71,25 @@
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
   (handler-case
-      (exec-prepared (connection-handle conn)
-                     (slot-value query 'name)
-                     params
-                     ;; TODO: lazy fetching
-                     (row-reader (fields)
-                       (let ((result
-                               (loop while (next-row)
-                                     collect (loop for field across fields
-                                                   collect (intern (field-name field) :keyword)
-                                                   collect (next-field field)))))
-                         (setf (slot-value query '%result)
-                               result)
-                         query)))
+      (multiple-value-bind (result count)
+          (exec-prepared (connection-handle conn)
+                         (slot-value query 'name)
+                         params
+                         ;; TODO: lazy fetching
+                         (row-reader (fields)
+                           (let ((result
+                                   (loop while (next-row)
+                                         collect (loop for field across fields
+                                                       collect (intern (field-name field) :keyword)
+                                                       collect (next-field field)))))
+                             (setf (slot-value query '%result)
+                                   result)
+                             query)))
+        (values (or result
+                    (make-instance '<dbd-postgres-query>
+                                   :connection conn
+                                   :%result '()))
+                count))
     (syntax-error-or-access-violation (e)
       (error '<dbi-programming-error>
              :message (database-error-message e)
