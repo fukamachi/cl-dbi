@@ -105,3 +105,6 @@
       ((string= database-path ":memory:") T)
       ((uiop:file-exists-p database-path) T)
       (T nil))))
+
+(defmethod row-count ((conn <dbd-sqlite3-connection>))
+  (second (fetch (execute (prepare conn "SELECT changes()")))))

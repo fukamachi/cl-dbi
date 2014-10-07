@@ -57,6 +57,7 @@
 
   (is-type (execute (prepare *db* "INSERT INTO person (id, name) VALUES (3, 'snmsts')"))
            '<dbi-query>)
+  (is (row-count *db*) 1)
   (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
          (result (execute query "snmsts")))
     (is (getf (fetch result) :|name|) "snmsts")))

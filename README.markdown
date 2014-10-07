@@ -69,6 +69,7 @@ This library will be available on Quicklisp when ready for use.
 * commit [conn]
 * rollback [conn]
 * ping [conn] =&gt; T or NIL
+* row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
 * with-connection [connection-variable-name &body body]
 
 ### Driver-Level API
@@ -86,6 +87,7 @@ This library will be available on Quicklisp when ready for use.
 * commit [conn]
 * rollback [conn]
 * ping [conn] =&gt; T or NIL
+* row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
 
 ## Creating a new driver
 

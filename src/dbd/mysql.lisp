@@ -116,3 +116,6 @@
       (if (= +server-gone-error+ (mysql-error-errno e))
           nil
           (signal e)))))
+
+(defmethod row-count ((conn <dbd-mysql-connection>))
+  (second (fetch (execute (prepare conn "SELECT ROW_COUNT()" :store T)))))

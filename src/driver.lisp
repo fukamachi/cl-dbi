@@ -187,6 +187,15 @@ This method must be implemented in each drivers.")
            :method-name 'ping)))
 
 @export
+(defgeneric row-count (conn)
+  (:documentation
+   "Return the number of counts modified by the last executed INSERT/UPDATE/DELETE query.")
+  (:method ((conn <dbi-connection>))
+    @ignore conn
+    (error '<dbi-notsupported-error>
+           :method-name 'row-count)))
+
+@export
 (defgeneric escape-sql (conn sql)
   (:documentation "Return escaped `sql`.
 This method may be overrided by subclasses when needed.

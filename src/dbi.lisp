@@ -23,7 +23,8 @@
                 :begin-transaction
                 :commit
                 :rollback
-                :ping)
+                :ping
+                :row-count)
   (:export :list-all-drivers
            :find-driver
            :connection-driver-type
@@ -38,6 +39,7 @@
            :commit
            :rollback
            :ping
+           :row-count
 
            :<dbi-error>
            :<dbi-warning>

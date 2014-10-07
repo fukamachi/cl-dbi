@@ -29,7 +29,9 @@
 (defclass <dbd-postgres> (<dbi-driver>) ())
 
 @export
-(defclass <dbd-postgres-connection> (<dbi-connection>) ())
+(defclass <dbd-postgres-connection> (<dbi-connection>)
+  ((%modified-row-count :type fixnum
+                        :initform -1)))
 
 (defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no))
   (make-instance '<dbd-postgres-connection>
@@ -86,9 +88,11 @@
                                    result)
                              query)))
         (or result
-            (make-instance '<dbd-postgres-query>
-                           :connection conn
-                           :%result (list count))))
+            (progn
+              (setf (slot-value conn '%modified-row-count) count)
+              (make-instance '<dbd-postgres-query>
+                             :connection conn
+                             :%result (list count)))))
     (syntax-error-or-access-violation (e)
       (error '<dbi-programming-error>
              :message (database-error-message e)
@@ -127,3 +131,6 @@
         cl-postgres-error:cannot-connect-now) (e)
         @ignore e
         nil))))
+
+(defmethod row-count ((conn <dbd-postgres-connection>))
+  (slot-value conn '%modified-row-count))
