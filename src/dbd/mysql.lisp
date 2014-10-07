@@ -51,7 +51,7 @@
       (store :initarg :store :initform T
              :accessor mysql-use-store)))
 
-(defstruct (mysql-result-list (:constructor make-mysql-result-list (result-set fields)))
+(defstruct (mysql-result-list (:constructor make-mysql-result-list (&optional result-set fields)))
   (result-set nil :type list)
   (fields nil :type list))
 

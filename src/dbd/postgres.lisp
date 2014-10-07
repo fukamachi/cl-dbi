@@ -85,11 +85,10 @@
                              (setf (slot-value query '%result)
                                    result)
                              query)))
-        (values (or result
-                    (make-instance '<dbd-postgres-query>
-                                   :connection conn
-                                   :%result '()))
-                count))
+        (or result
+            (make-instance '<dbd-postgres-query>
+                           :connection conn
+                           :%result (list count))))
     (syntax-error-or-access-violation (e)
       (error '<dbi-programming-error>
              :message (database-error-message e)
