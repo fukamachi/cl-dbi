@@ -66,7 +66,8 @@
                  :error-code (sqlite-error-code e))
           (error '<dbi-database-error>
                  :message (sqlite-error-message e)
-                 :error-code (sqlite-error-code e))))))
+                 :error-code (sqlite-error-code e)))))
+  (values))
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>))
   @ignore conn

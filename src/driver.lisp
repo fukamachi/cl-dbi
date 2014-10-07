@@ -133,7 +133,7 @@ This method may be overrided by subclasses."
 This method may be overrided by subclasses.")
   (:method ((conn <dbi-connection>) (sql string) &rest params)
     (apply #'execute (prepare conn sql) params)
-    nil))
+    (values)))
 
 @export
 (defgeneric execute-using-connection (conn query params)
