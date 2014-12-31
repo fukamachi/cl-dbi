@@ -30,8 +30,8 @@
 
 @export
 (defclass <dbd-postgres-connection> (<dbi-connection>)
-  ((%modified-row-count :type fixnum
-                        :initform -1)))
+  ((%modified-row-count :type (or null fixnum)
+                        :initform nil)))
 
 (defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no))
   (make-instance '<dbd-postgres-connection>
