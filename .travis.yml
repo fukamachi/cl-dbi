@@ -1,15 +1,22 @@
-language: lisp
+language: common-lisp
+
 addons:
   postgresql: "9.3"
 
-before_install:
- - sudo apt-get update -qq
- - sudo apt-get install -qq sbcl
- - curl --no-progress-bar --retry 10 -o quicklisp.lisp -L http://beta.quicklisp.org/quicklisp.lisp
- - mysql -uroot -e 'GRANT ALL ON *.* TO nobody@"localhost" IDENTIFIED BY "nobody"'
- - mysql -e 'CREATE DATABASE `cl-dbi`'
- - psql -c 'create database "cl-dbi";' -U postgres
- - psql -c "CREATE USER nobody WITH PASSWORD 'nobody';" -U postgres
+env:
+  matrix:
+    - LISP=sbcl
+    - LISP=ccl
+
+install:
+  # Install cl-travis
+  - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
+
+before_script:
+  - mysql -uroot -e 'GRANT ALL ON *.* TO nobody@"localhost" IDENTIFIED BY "nobody"'
+  - mysql -e 'CREATE DATABASE `cl-dbi`'
+  - psql -c 'create database "cl-dbi";' -U postgres
+  - psql -c "CREATE USER nobody WITH PASSWORD 'nobody';" -U postgres
 
 script:
- - sbcl --script t/run-test.lisp
+  - cl -l prove -e '(or (prove:run :dbi-test) (uiop:quit -1))'

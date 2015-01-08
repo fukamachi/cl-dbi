@@ -12,7 +12,7 @@
   :author "Eitarow Fukamachi"
   :license "LLGPL"
   :depends-on (:dbi
-               :cl-test-more
+               :prove
                :closer-mop
                :cl-syntax
                :cl-syntax-annot
@@ -30,7 +30,6 @@
                    (:test-file "postgres")
                    (:test-file "mysql"))))))
 
-  :defsystem-depends-on (:cl-test-more)
+  :defsystem-depends-on (:prove)
   :perform (test-op :after (op c)
-                    (funcall (intern #. (string :run-test-system) :cl-test-more)
-                             c)))
+                    (funcall (intern #.(string :run-test-system) :prove) c)))
