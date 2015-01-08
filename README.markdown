@@ -1,5 +1,7 @@
 # CL-DBI - Database independent interface for Common Lisp
 
+[![Build Status](https://travis-ci.org/fukamachi/cl-dbi.svg?branch=master)](https://travis-ci.org/fukamachi/cl-dbi)
+
 ## Usage
 
 ### Connecting and executing a query
