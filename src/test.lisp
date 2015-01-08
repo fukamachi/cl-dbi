@@ -14,13 +14,13 @@
 
 (cl-syntax:use-syntax :annot)
 
-(plan 6)
-
 (defparameter *db* nil)
 
 @export
 (defun run-driver-tests (driver-name &rest params)
-  (let ((*db* (apply #'connect driver-name params)))
+  (let ((*db* (apply #'connect driver-name params))
+        (*package* (find-package :dbi.test)))
+    (plan 6)
     (run-test-package :dbi.test)))
 
 (deftest |connect|
