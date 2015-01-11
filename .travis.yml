@@ -8,7 +8,6 @@ env:
     - LISP=sbcl
     - LISP=ccl
     - LISP=clisp
-    - LISP=abcl
 
 install:
   # Install cl-travis
@@ -19,7 +18,6 @@ before_script:
   - mysql -e 'CREATE DATABASE `cl-dbi`'
   - psql -c 'create database "cl-dbi";' -U postgres
   - psql -c "CREATE USER nobody WITH PASSWORD 'nobody';" -U postgres
-  - git clone https://github.com/fukamachi/prove ~/lisp/prove
 
 script:
   - cl -l prove -e '(or (prove:run :dbi-test) (uiop:quit -1))'
