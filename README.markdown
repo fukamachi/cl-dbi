@@ -33,10 +33,6 @@
        do (format t "~A~%" row))))
 ```
 
-## Warning
-
-This library is still under development and considered ALPHA quality. APIs are likely to change.
-
 ## Description
 
 CL-DBI provides the same interface for multiple SQL databases. You need not learn the API of each database.
