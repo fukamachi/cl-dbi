@@ -1,6 +1,6 @@
 #|
   This file is a part of CL-DBI project.
-  Copyright (c) 2011 Eitarow Fukamachi (e.arrows@gmail.com)
+  Copyright (c) 2011 Eitaro Fukamachi (e.arrows@gmail.com)
 |#
 
 (in-package :cl-user)
@@ -9,7 +9,7 @@
 (in-package :dbi-test-asd)
 
 (defsystem dbi-test
-  :author "Eitarow Fukamachi"
+  :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on (:dbi
                :prove
