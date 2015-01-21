@@ -17,7 +17,8 @@
                 :connect-to-server
                 :return-or-close
                 :owner-pool
-                :+server-gone-error+))
+                :+server-gone-error+
+                :+server-lost+))
 (in-package :dbd.mysql)
 
 (cl-syntax:use-syntax :annot)
@@ -106,11 +107,12 @@
   (do-sql conn "ROLLBACK"))
 
 (defmethod ping ((conn <dbd-mysql-connection>))
-  (handler-case (cl-mysql:ping :database (connection-handle conn))
-    (mysql-error (e)
-      (if (= +server-gone-error+ (mysql-error-errno e))
-          nil
-          (signal e)))))
+  (handler-bind ((mysql-error
+                   (lambda (e)
+                     (when (or (= (mysql-error-errno e) +server-gone-error+)
+                               (= (mysql-error-errno e) +server-lost+))
+                       (abort e)))))
+    (cl-mysql:ping :database (connection-handle conn))))
 
 (defmethod row-count ((conn <dbd-mysql-connection>))
   (second (fetch (execute (prepare conn "SELECT ROW_COUNT()" :store T)))))

@@ -16,7 +16,9 @@
   (let ((*db* (apply #'connect driver-name params))
         (*package* (find-package :dbi.test)))
     (plan 6)
-    (run-test-package :dbi.test)))
+    (unwind-protect
+         (run-test-package :dbi.test)
+      (disconnect *db*))))
 
 (deftest |connect|
   (is-type *db* '<dbi-connection>))
