@@ -111,7 +111,7 @@
                    (lambda (e)
                      (when (or (= (mysql-error-errno e) +server-gone-error+)
                                (= (mysql-error-errno e) +server-lost+))
-                       (abort e)))))
+                       (return-from ping nil)))))
     (cl-mysql:ping :database (connection-handle conn))))
 
 (defmethod row-count ((conn <dbd-mysql-connection>))
