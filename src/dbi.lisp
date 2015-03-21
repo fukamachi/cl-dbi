@@ -67,6 +67,21 @@
 
     (apply #'make-connection (make-instance driver) params)))
 
+(defvar *connections* (make-hash-table :test 'equal))
+
+@export
+(defun connect-cached (&rest connect-args)
+  (let ((conn (gethash connect-args *connections*)))
+    (cond
+      ((null conn)
+       (setf (gethash connect-args *connections*)
+             (apply #'connect connect-args)))
+      ((not (ping conn))
+       (disconnect conn)
+       (remhash connect-args *connections*)
+       (apply #'connect-cached connect-args))
+      (T conn))))
+
 (defun load-driver (driver-name)
   (let ((driver-system (intern (format nil "DBD-~A" driver-name) :keyword)))
     #+quicklisp (ql:quickload driver-system :verbose nil)

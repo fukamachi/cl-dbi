@@ -54,6 +54,7 @@ This library will be available on Quicklisp when ready for use.
 ### User-Level API
 
 * connect [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
+* connect-cached [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * execute [query &amp; params] =&gt; something
