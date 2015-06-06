@@ -77,6 +77,9 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
                   :initarg :connection
                   :initform nil
                   :accessor query-connection)
+      (sql :type string
+           :initarg :sql
+           :accessor query-sql)
       (prepared :type t
                 :initarg :prepared
                 :accessor query-prepared))
@@ -91,6 +94,7 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
 This method may be overrided by subclasses."
   (make-instance query-class
      :connection conn
+     :sql sql
      :prepared (prepare-sql conn sql)))
 
 @export
