@@ -121,9 +121,9 @@
                                         (symbol-name (gensym "PING"))
                                         "")
                t))
-      ((cl-postgres-error:admin-shutdown
-        cl-postgres-error:crash-shutdown
-        cl-postgres-error:cannot-connect-now) (e)
+      ((or cl-postgres-error:admin-shutdown
+           cl-postgres-error:crash-shutdown
+           cl-postgres-error:cannot-connect-now) (e)
         @ignore e
         nil))))
 
