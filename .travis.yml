@@ -1,17 +1,22 @@
 language: common-lisp
+sudo: false
 
 addons:
   postgresql: "9.3"
 
 env:
+  global:
+    - PATH=$HOME/.roswell/bin:$PATH
+    - ROSWELL_INSTALL_DIR=$HOME/.roswell
   matrix:
-    - LISP=sbcl
-    - LISP=ccl
+    - LISP=sbcl-bin
+    - LISP=ccl-bin
     - LISP=clisp
 
 install:
-  # Install cl-travis
-  - curl https://raw.githubusercontent.com/luismbo/cl-travis/master/install.sh | bash
+  # Install Roswell
+  - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
+  - ros install prove
 
 before_script:
   - mysql -uroot -e 'GRANT ALL ON *.* TO nobody@"localhost" IDENTIFIED BY "nobody"'
@@ -21,4 +26,4 @@ before_script:
   - git clone -b in-package-cl-user https://github.com/fukamachi/cl-annot ~/lisp/cl-annot
 
 script:
-  - cl -l prove -e '(or (prove:run :dbi-test) (uiop:quit -1))'
+  - run-prove dbi-test.asd
