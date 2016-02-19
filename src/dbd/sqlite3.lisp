@@ -81,7 +81,8 @@
                              (statement-column-value prepared i)))))))
 
 (defmethod disconnect ((conn <dbd-sqlite3-connection>))
-  (sqlite:disconnect (connection-handle conn)))
+  (when (slot-boundp (connection-handle conn) 'sqlite::handle)
+    (sqlite:disconnect (connection-handle conn))))
 
 (defmethod begin-transaction ((conn <dbd-sqlite3-connection>))
   (sqlite:execute-non-query (connection-handle conn) "BEGIN TRANSACTION"))
