@@ -67,6 +67,9 @@ This library will be available on Quicklisp when ready for use.
 * begin-transaction [conn]
 * commit [conn]
 * rollback [conn]
+* savepoint [conn savepoint-name]
+* release-savepoint [conn savepoint-name]
+* rollback-to-savepoint [conn savepoint-name]
 * ping [conn] =&gt; T or NIL
 * row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
 * with-connection [connection-variable-name &body body]
@@ -85,8 +88,11 @@ This library will be available on Quicklisp when ready for use.
 * begin-transaction [conn]
 * commit [conn]
 * rollback [conn]
+* savepoint [conn savepoint-name]
+* release-savepoint [conn savepoint-name]
+* rollback-to-savepoint [conn savepoint-name]
 * ping [conn] =&gt; T or NIL
-* row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
+* row-count [conn] =&gt; a number of rows modified by the last executed INSERT/UPDATE/DELETE
 
 ## Creating a new driver
 
@@ -102,6 +108,9 @@ These methods can be overriden if needed.
 * fetch-using-connection
 * do-sql
 * escape-sql
+* savepoint
+* release-savepoint
+* rollback-to-savepoint
 
 ## Dependencies
 

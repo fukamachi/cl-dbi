@@ -177,6 +177,39 @@ This method must be implemented in each drivers.")
            :method-name 'rollback)))
 
 @export
+(defgeneric savepoint (conn savepoint-name)
+  (:documentation
+    "Set a named transaction savepoint with a name of `savepoint-name`.
+This method may be overrided by subclasses.")
+  (:method ((conn <dbi-connection>)
+            (savepoint-name string))
+   (let* ((sql (format nil "SAVEPOINT ~a"
+                       (escape-sql conn savepoint-name))))
+     (do-sql conn sql))))
+
+@export
+(defgeneric release-savepoint (conn savepoint-name)
+  (:documentation
+    "Release transaction savepoint `savepoint-name`.
+This method may be overrided by subclasses.")
+  (:method ((conn <dbi-connection>)
+            (savepoint-name string))
+   (let* ((sql (format nil "RELEASE SAVEPOINT ~a"
+                       (escape-sql conn savepoint-name))))
+     (do-sql conn sql))))
+
+@export
+(defgeneric rollback-to-savepoint (conn savepoint-name)
+  (:documentation
+    "Rollback all changes since `savepoint-name`.
+This method may be overrided by subclasses.")
+  (:method ((conn <dbi-connection>)
+            (savepoint-name string))
+   (let* ((sql (format nil "ROLLBACK TO SAVEPOINT ~a"
+                       (escape-sql conn savepoint-name))))
+     (do-sql conn sql))))
+
+@export
 (defgeneric ping (conn)
   (:documentation
    "Check if the database server is still running and the connection to it is still working.")
