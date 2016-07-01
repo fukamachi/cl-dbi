@@ -95,13 +95,16 @@
         (conn-var (gensym "CONN-VAR")))
     `(let (,ok
            (,conn-var ,conn))
-       (begin-transaction ,conn-var)
+       (when *transaction*
+         (begin-transaction ,conn-var))
        (unwind-protect (multiple-value-prog1
-                         (progn ,@body)
+                         (let ((*transaction* t))
+                           ,@body)
                          (setf ,ok t))
-         (if ,ok
-             (commit ,conn-var)
-             (rollback ,conn-var))))))
+         (when *transaction*
+           (if ,ok
+               (commit ,conn-var)
+               (rollback ,conn-var)))))))
 
 @export
 (defmacro with-connection ((conn-sym &rest rest) &body body)
