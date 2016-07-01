@@ -88,6 +88,8 @@
     #-quicklisp
     (asdf:load-system driver-system :verbose nil)))
 
+(defvar *transaction* nil)
+
 @export
 (defmacro with-transaction (conn &body body)
   "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
