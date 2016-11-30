@@ -15,7 +15,9 @@
 
                 :admin-shutdown
                 :crash-shutdown
-                :cannot-connect-now))
+                :cannot-connect-now)
+  (:import-from :trivial-garbage
+                :finalize))
 (in-package :dbd.postgres)
 
 (cl-syntax:use-syntax :annot)
@@ -53,10 +55,15 @@
                     do (format s "$~D" (incf i))
                   else do (write-char c s))))
     (handler-case
-        (make-instance '<dbd-postgres-query>
-           :connection conn
-           :name name
-           :prepared (prepare-query (connection-handle conn) name sql))
+        (let* ((conn-handle (connection-handle conn))
+               (query (make-instance '<dbd-postgres-query>
+                                     :connection conn
+                                     :name name
+                                     :prepared (prepare-query conn-handle name sql))))
+          (finalize query
+                    (lambda ()
+                      (when (database-open-p conn-handle)
+                        (unprepare-query conn-handle name)))))
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
                :message (database-error-message e)

@@ -20,6 +20,7 @@
   :license "LLGPL"
   :depends-on (:dbi
                :cl-postgres
+               :trivial-garbage
                :cl-syntax
                :cl-syntax-annot)
   :components ((:module "src/dbd"
