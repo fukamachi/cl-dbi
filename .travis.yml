@@ -2,7 +2,10 @@ language: common-lisp
 sudo: false
 
 addons:
-  postgresql: "9.3"
+  postgresql: "9.4"
+
+services:
+  - postgresql
 
 env:
   global:
@@ -15,7 +18,7 @@ env:
 
 install:
   # Install Roswell
-  - curl -L https://raw.githubusercontent.com/snmsts/roswell/release/scripts/install-for-ci.sh | sh
+  - curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
   - ros install prove
 
 before_script:
@@ -23,7 +26,6 @@ before_script:
   - mysql -e 'CREATE DATABASE `cl-dbi`'
   - psql -c 'create database "cl-dbi";' -U postgres
   - psql -c "CREATE USER nobody WITH PASSWORD 'nobody';" -U postgres
-  - git clone -b in-package-cl-user https://github.com/fukamachi/cl-annot ~/lisp/cl-annot
 
 script:
   - run-prove dbi-test.asd
