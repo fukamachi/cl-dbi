@@ -16,6 +16,10 @@ env:
     - LISP=ccl-bin
     - LISP=clisp
 
+matrix:
+  allow_failures:
+    - env: LISP=clisp
+
 install:
   # Install Roswell
   - curl -L https://raw.githubusercontent.com/roswell/roswell/release/scripts/install-for-ci.sh | sh
