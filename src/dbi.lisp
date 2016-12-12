@@ -67,20 +67,40 @@
 
     (apply #'make-connection (make-instance driver) params)))
 
-(defvar *connections* (make-hash-table :test 'equal))
+(defparameter *connection-pool* nil)
+
+(defun make-connection-pool ()
+  (make-hash-table :test 'equal))
+
+#+thread-support
+(defun make-threads-connection-pool ()
+  (let ((pool (make-hash-table :test 'eq)))
+    (setf (gethash (bt:current-thread) pool) (make-connection-pool))
+    pool))
+#-thread-support
+(defun make-threads-connection-pool ()
+  (make-connection-pool))
+
+(defvar *threads-connection-pool* (make-threads-connection-pool))
+
+(defun get-connection-pool ()
+  (or (gethash (bt:current-thread) *threads-connection-pool*)
+      (setf (gethash (bt:current-thread) *threads-connection-pool*)
+            (make-connection-pool))))
 
 @export
 (defun connect-cached (&rest connect-args)
-  (let ((conn (gethash connect-args *connections*)))
+  (let* ((pool (get-connection-pool))
+         (conn (gethash connect-args pool)))
     (cond
       ((null conn)
-       (setf (gethash connect-args *connections*)
+       (setf (gethash connect-args pool)
              (apply #'connect connect-args)))
       ((not (ping conn))
        (disconnect conn)
-       (remhash connect-args *connections*)
+       (remhash connect-args pool)
        (apply #'connect-cached connect-args))
-      (T conn))))
+      (t conn))))
 
 (defun load-driver (driver-name)
   (let ((driver-system (intern (format nil "DBD-~A" driver-name) :keyword)))

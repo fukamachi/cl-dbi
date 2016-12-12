@@ -21,7 +21,8 @@
   :depends-on (:cl-syntax
                :cl-syntax-annot
                :split-sequence
-               :closer-mop)
+               :closer-mop
+               :bordeaux-threads)
   :components ((:module "src"
                 :components
                 ((:file "dbi" :depends-on ("driver"))
