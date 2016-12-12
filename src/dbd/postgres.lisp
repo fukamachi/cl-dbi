@@ -70,7 +70,7 @@
                               (unprepare-query conn-handle name)
                               (loop for name = (pop (slot-value conn '%deallocation-queue))
                                     while name
-                                    do (unprepare-query conn name)))
+                                    do (unprepare-query conn-handle name)))
                           (error (e)
                             (warn "Failed to deallocate '~A' with an error:~%  ~A" name e)
                             (push name (slot-value conn '%deallocation-queue))))))))
