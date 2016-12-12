@@ -68,9 +68,11 @@
                         (handler-case
                             (progn
                               (unprepare-query conn-handle name)
-                              (dolist (name (slot-value conn '%deallocation-queue))
-                                (unprepare-query conn name)))
-                          (error ()
+                              (loop for name = (pop (slot-value conn '%deallocation-queue))
+                                    while name
+                                    do (unprepare-query conn name)))
+                          (error (e)
+                            (warn "Failed to deallocate '~A' with an error:~%  ~A" name e)
                             (push name (slot-value conn '%deallocation-queue))))))))
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
