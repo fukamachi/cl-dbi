@@ -64,7 +64,7 @@
                     (lambda ()
                       (when (database-open-p conn-handle)
                         (handler-case
-                            (unprepare-query conn-handle name)
+                            (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)
                           (error (e)
                             (warn "Error while deleting a prepared statement:~%  SQL: ~A~%  ~A" sql e)))))))
       (syntax-error-or-access-violation (e)
