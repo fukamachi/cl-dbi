@@ -28,6 +28,8 @@
 @export
 (defclass <dbd-postgres-connection> (<dbi-connection>)
   ((%modified-row-count :type (or null fixnum)
+                        :initform nil)
+   (%deallocation-queue :type list
                         :initform nil)))
 
 (defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no))
@@ -64,9 +66,12 @@
                     (lambda ()
                       (when (database-open-p conn-handle)
                         (handler-case
-                            (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)
-                          (error (e)
-                            (warn "Error while deleting a prepared statement:~%  SQL: ~A~%  ~A" sql e)))))))
+                            (progn
+                              (unprepare-query conn-handle name)
+                              (dolist (name (slot-value conn '%deallocation-queue))
+                                (unprepare-query conn name)))
+                          (error ()
+                            (push name (slot-value conn '%deallocation-queue))))))))
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
                :message (database-error-message e)
