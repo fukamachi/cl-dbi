@@ -24,13 +24,18 @@
   (is-type *db* '<dbi-connection>))
 
 (deftest |do-sql|
-  (is (do-sql *db* "DROP TABLE IF EXISTS person") nil)
-  (is (do-sql *db* "CREATE TABLE person (id INTEGER PRIMARY KEY, name VARCHAR(24) NOT NULL)")
-      nil)
-  (is (do-sql *db* "INSERT INTO person (id, name) VALUES (1, 'fukamachi')")
-      nil)
-  (is (do-sql *db* "INSERT INTO person (id, name) VALUES (2, 'matsuyama')")
-      nil))
+  (is-type (do-sql *db* "DROP TABLE IF EXISTS person")
+           'dbi.driver:<dbi-query>)
+  (is-type (do-sql *db* "CREATE TABLE person (id INTEGER PRIMARY KEY, name VARCHAR(24) NOT NULL)")
+           'dbi.driver:<dbi-query>)
+  (is-type (do-sql *db* "INSERT INTO person (id, name) VALUES (1, 'fukamachi')")
+           'dbi.driver:<dbi-query>)
+  (is-type (do-sql *db* "INSERT INTO person (id, name) VALUES (2, 'matsuyama')")
+           'dbi.driver:<dbi-query>)
+  (is-type (do-sql *db* "SELECT * FROM person")
+           'dbi.driver:<dbi-query>)
+  (is (length (fetch-all (do-sql *db* "SELECT * FROM person")))
+      2))
 
 (deftest |prepare, execute & fetch|
   (let (query result)
