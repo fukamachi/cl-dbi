@@ -44,6 +44,11 @@
             :initform nil)))
 
 (defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
+  ;; Deallocate used prepared statements here,
+  ;; because GC finalizer may run during processing another query and fail.
+  (loop for prepared = (pop (slot-value conn '%deallocation-queue))
+        while prepared
+        do (unprepare-query (connection-handle conn) prepared))
   (let ((name (symbol-name (gensym "PREPARED-STATEMENT"))))
     (setf sql
           (with-output-to-string (s)
@@ -65,14 +70,7 @@
           (finalize query
                     (lambda ()
                       (when (database-open-p conn-handle)
-                        (handler-case
-                            (progn
-                              (unprepare-query conn-handle name)
-                              (loop for name = (pop (slot-value conn '%deallocation-queue))
-                                    while name
-                                    do (unprepare-query conn-handle name)))
-                          (error ()
-                            (push name (slot-value conn '%deallocation-queue))))))))
+                        (push name (slot-value conn '%deallocation-queue))))))
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
                :message (database-error-message e)
