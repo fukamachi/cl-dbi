@@ -90,6 +90,12 @@
                :message (database-error-message e)
                :error-code (database-error-code e))))))
 
+(defmethod do-sql ((conn <dbd-postgres-connection>) (sql string) &rest params)
+  (let ((query (prepare conn sql)))
+    (prog1
+        (execute-using-connection conn query params)
+      (unprepare-query (connection-handle conn) (slot-value query 'name)))))
+
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
   (handler-case
       (multiple-value-bind (result count)
