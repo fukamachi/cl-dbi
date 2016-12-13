@@ -65,21 +65,22 @@
           (finalize query
                     (lambda ()
                       (when (database-open-p conn-handle)
-                        (when (cl-postgres::connection-available conn-handle)
-                          (let ((name name))
-                            (setf (cl-postgres::connection-available conn-handle) nil)
-                            (handler-case
-                                (unwind-protect
-                                     (progn
-                                       (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)
-                                       (loop
-                                         (setf name (pop (slot-value conn '%deallocation-queue)))
-                                         (unless name
-                                           (return))
-                                         (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)))
-                                  (setf (cl-postgres::connection-available conn-handle) t))
-                              (error ()
-                                (push name (slot-value conn '%deallocation-queue))))))))))
+                        (if (cl-postgres::connection-available conn-handle)
+                            (let ((name name))
+                              (setf (cl-postgres::connection-available conn-handle) nil)
+                              (handler-case
+                                  (unwind-protect
+                                       (progn
+                                         (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)
+                                         (loop
+                                           (setf name (pop (slot-value conn '%deallocation-queue)))
+                                           (unless name
+                                             (return))
+                                           (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)))
+                                    (setf (cl-postgres::connection-available conn-handle) t))
+                                (error ()
+                                  (push name (slot-value conn '%deallocation-queue)))))
+                            (push name (slot-value conn '%deallocation-queue)))))))
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
                :message (database-error-message e)
