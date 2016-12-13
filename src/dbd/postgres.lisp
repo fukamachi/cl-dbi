@@ -65,14 +65,21 @@
           (finalize query
                     (lambda ()
                       (when (database-open-p conn-handle)
-                        (handler-case
-                            (progn
-                              (unprepare-query conn-handle name)
-                              (loop for name = (pop (slot-value conn '%deallocation-queue))
-                                    while name
-                                    do (unprepare-query conn-handle name)))
-                          (error ()
-                            (push name (slot-value conn '%deallocation-queue))))))))
+                        (when (cl-postgres::connection-available conn-handle)
+                          (let ((name name))
+                            (setf (cl-postgres::connection-available conn-handle) nil)
+                            (handler-case
+                                (unwind-protect
+                                     (progn
+                                       (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)
+                                       (loop
+                                         (setf name (pop (slot-value conn '%deallocation-queue)))
+                                         (unless name
+                                           (return))
+                                         (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)))
+                                  (setf (cl-postgres::connection-available conn-handle) t))
+                              (error ()
+                                (push name (slot-value conn '%deallocation-queue))))))))))
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
                :message (database-error-message e)
