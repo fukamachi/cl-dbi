@@ -44,6 +44,11 @@
             :initform nil)))
 
 (defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
+  ;; Deallocate used prepared statements here,
+  ;; because GC finalizer may run during processing another query and fail.
+  (loop for prepared = (pop (slot-value conn '%deallocation-queue))
+        while prepared
+        do (unprepare-query (connection-handle conn) prepared))
   (let ((name (symbol-name (gensym "PREPARED-STATEMENT"))))
     (setf sql
           (with-output-to-string (s)
@@ -65,22 +70,7 @@
           (finalize query
                     (lambda ()
                       (when (database-open-p conn-handle)
-                        (if (cl-postgres::connection-available conn-handle)
-                            (let ((name name))
-                              (setf (cl-postgres::connection-available conn-handle) nil)
-                              (handler-case
-                                  (unwind-protect
-                                       (progn
-                                         (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)
-                                         (loop
-                                           (setf name (pop (slot-value conn '%deallocation-queue)))
-                                           (unless name
-                                             (return))
-                                           (cl-postgres::send-close (cl-postgres::connection-socket conn-handle) name)))
-                                    (setf (cl-postgres::connection-available conn-handle) t))
-                                (error ()
-                                  (push name (slot-value conn '%deallocation-queue)))))
-                            (push name (slot-value conn '%deallocation-queue)))))))
+                        (push name (slot-value conn '%deallocation-queue))))))
       (syntax-error-or-access-violation (e)
         (error '<dbi-programming-error>
                :message (database-error-message e)
@@ -89,12 +79,6 @@
         (error '<dbi-database-error>
                :message (database-error-message e)
                :error-code (database-error-code e))))))
-
-(defmethod do-sql ((conn <dbd-postgres-connection>) (sql string) &rest params)
-  (let ((query (prepare conn sql)))
-    (prog1
-        (execute-using-connection conn query params)
-      (unprepare-query (connection-handle conn) (slot-value query 'name)))))
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
   (handler-case
