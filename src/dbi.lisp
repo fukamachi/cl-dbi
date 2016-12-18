@@ -20,6 +20,9 @@
                 :rollback
                 :ping
                 :row-count)
+  (:import-from :bordeaux-threads
+                :current-thread
+                :thread-alive-p)
   (:export :list-all-drivers
            :find-driver
            :connection-driver-type
@@ -67,8 +70,6 @@
 
     (apply #'make-connection (make-instance driver) params)))
 
-(defparameter *connection-pool* nil)
-
 (defun make-connection-pool ()
   (make-hash-table :test 'equal))
 
@@ -94,13 +95,26 @@
          (conn (gethash connect-args pool)))
     (cond
       ((null conn)
+       (cleanup-connection-pool)
        (setf (gethash connect-args pool)
              (apply #'connect connect-args)))
       ((not (ping conn))
        (disconnect conn)
        (remhash connect-args pool)
-       (apply #'connect-cached connect-args))
+       (cleanup-connection-pool)
+       (setf (gethash connect-args pool)
+             (apply #'connect connect-args)))
       (t conn))))
+
+(defun cleanup-connection-pool ()
+  (maphash (lambda (thread pool)
+             (unless (bt:thread-alive-p thread)
+               (maphash (lambda (args conn)
+                          (declare (ignore args))
+                          (disconnect conn))
+                        pool)
+               (remhash thread *threads-connection-pool*)))
+           *threads-connection-pool*))
 
 (defun load-driver (driver-name)
   (let ((driver-system (intern (format nil "DBD-~A" driver-name) :keyword)))
