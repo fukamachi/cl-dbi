@@ -122,6 +122,8 @@
     #-quicklisp
     (asdf:load-system driver-system :verbose nil)))
 
+(defvar *transaction* nil)
+
 @export
 (defmacro with-transaction (conn &body body)
   "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
@@ -129,13 +131,16 @@
         (conn-var (gensym "CONN-VAR")))
     `(let (,ok
            (,conn-var ,conn))
-       (begin-transaction ,conn-var)
+       (when *transaction*
+         (begin-transaction ,conn-var))
        (unwind-protect (multiple-value-prog1
-                         (progn ,@body)
+                         (let ((*transaction* t))
+                           ,@body)
                          (setf ,ok t))
-         (if ,ok
-             (commit ,conn-var)
-             (rollback ,conn-var))))))
+         (when *transaction*
+           (if ,ok
+               (commit ,conn-var)
+               (rollback ,conn-var)))))))
 
 @export
 (defmacro with-connection ((conn-sym &rest rest) &body body)
