@@ -126,6 +126,21 @@
 (defmethod rollback ((conn <dbd-postgres-connection>))
   (do-sql conn "ROLLBACK"))
 
+(defmethod savepoint ((conn <dbd-postgres-connection>) (name string))
+  (do-sql conn (concatenate 'string 
+                            "SAVEPOINT "
+                            (escape-sql conn name))))
+
+(defmethod rollback-to-savepoint ((conn <dbd-postgres-connection>) (name string))
+  (do-sql conn (concatenate 'string
+                            "ROLLBACK TO SAVEPOINT "
+                            (escape-sql conn name))))
+
+(defmethod release-savepoint ((conn <dbd-postgres-connection>) (name string))
+  (do-sql conn (concatenate 'string 
+                            "RELEASE SAVEPOINT "
+                            (escape-sql conn name))))
+
 (defmethod ping ((conn <dbd-postgres-connection>))
   (let ((handle (connection-handle conn)))
     (handler-case

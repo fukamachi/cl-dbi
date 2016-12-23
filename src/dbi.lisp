@@ -18,6 +18,9 @@
                 :begin-transaction
                 :commit
                 :rollback
+                :savepoint
+                :rollback-to-savepoint
+                :release-savepoint
                 :ping
                 :row-count)
   (:import-from :bordeaux-threads
@@ -36,6 +39,9 @@
            :begin-transaction
            :commit
            :rollback
+           :savepoint
+           :rollback-to-savepoint
+           :release-savepoint
            :ping
            :row-count
 

@@ -177,6 +177,30 @@ This method must be implemented in each drivers.")
            :method-name 'rollback)))
 
 @export
+(defgeneric savepoint (conn name)
+  (:documentation "Create a savepoint.")
+  (:method ((conn <dbi-connection>) (name string))
+    @ignore (conn name)
+    (error '<dbi-notsupported-error>
+           :method-name 'savepoint)))
+
+@export
+(defgeneric rollback-to-savepoint (conn name)
+  (:documentation "Rollback to a savepoint.")
+  (:method ((conn <dbi-connection>) (name string))
+    @ignore (conn name)
+    (error '<dbi-notsupported-error>
+           :method-name 'rollback-to-savepoint)))
+
+@export
+(defgeneric release-savepoint (conn name)
+  (:documentation "Destroy savepoint, keeping the effects of commands after it was established.")
+  (:method ((conn <dbi-connection>) (name string))
+    @ignore (conn name)
+    (error '<dbi-notsupported-error>
+           :method-name 'release-savepoint)))
+
+@export
 (defgeneric ping (conn)
   (:documentation
    "Check if the database server is still running and the connection to it is still working.")
