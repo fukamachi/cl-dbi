@@ -106,6 +106,21 @@
 (defmethod rollback ((conn <dbd-mysql-connection>))
   (do-sql conn "ROLLBACK"))
 
+(defmethod savepoint ((conn <dbd-mysql-connection>) (name string))
+  (do-sql conn (concatenate 'string 
+                            "SAVEPOINT "
+                            (escape-sql conn name))))
+
+(defmethod rollback-to-savepoint ((conn <dbd-mysql-connection>) (name string))
+  (do-sql conn (concatenate 'string
+                            "ROLLBACK TO SAVEPOINT "
+                            (escape-sql conn name))))
+
+(defmethod release-savepoint ((conn <dbd-mysql-connection>) (name string))
+  (do-sql conn (concatenate 'string 
+                            "RELEASE SAVEPOINT "
+                            (escape-sql conn name))))
+
 (defmethod ping ((conn <dbd-mysql-connection>))
   (handler-bind ((mysql-error
                    (lambda (e)

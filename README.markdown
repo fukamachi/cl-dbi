@@ -67,6 +67,9 @@ This library will be available on Quicklisp when ready for use.
 * begin-transaction [conn]
 * commit [conn]
 * rollback [conn]
+* savepoint [conn name]
+* rollback-to-savepoint [conn name]
+* release-savepoint [conn name]
 * ping [conn] =&gt; T or NIL
 * row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
 * with-connection [connection-variable-name &body body]
@@ -85,6 +88,9 @@ This library will be available on Quicklisp when ready for use.
 * begin-transaction [conn]
 * commit [conn]
 * rollback [conn]
+* savepoint [conn name]
+* rollback-to-savepoint [conn name]
+* release-savepoint [conn name]
 * ping [conn] =&gt; T or NIL
 * row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
 

@@ -93,6 +93,24 @@
 (defmethod rollback ((conn <dbd-sqlite3-connection>))
   (sqlite:execute-non-query (connection-handle conn) "ROLLBACK TRANSACTION"))
 
+(defmethod savepoint ((conn <dbd-sqlite3-connection>) (name string))
+  (sqlite:execute-non-query (connection-handle conn) 
+                            (concatenate 'string 
+                                         "SAVEPOINT "
+                                         (escape-sql conn name))))
+
+(defmethod rollback-to-savepoint ((conn <dbd-sqlite3-connection>) (name string))
+  (sqlite:execute-non-query (connection-handle conn) 
+                            (concatenate 'string
+                                         "ROLLBACK TO SAVEPOINT "
+                                         (escape-sql conn name))))
+
+(defmethod release-savepoint ((conn <dbd-sqlite3-connection>) (name string))
+  (sqlite:execute-non-query (connection-handle conn) 
+                            (concatenate 'string 
+                                         "RELEASE SAVEPOINT "
+                                         (escape-sql conn name))))
+
 (defmethod ping ((conn <dbd-sqlite3-connection>))
   "Return T if the database file exists or the database is in-memory."
   (let* ((handle (connection-handle conn))

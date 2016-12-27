@@ -15,7 +15,7 @@
 (defun run-driver-tests (driver-name &rest params)
   (let ((*db* (apply #'connect driver-name params))
         (*package* (find-package :dbi.test)))
-    (plan 6)
+    (plan 7)
     (unwind-protect
          (run-test-package :dbi.test)
       (disconnect *db*))))
@@ -77,6 +77,32 @@
             '(:|id| 4 :|name| "meymao")))
     (dbi.error:<dbi-notsupported-error> ()
       (skip 1 "Not supported"))))
+
+(deftest |savepoint|
+  (handler-case
+    (labels ((insert (id name)
+               (do-sql *db* "INSERT INTO person (id, name) VALUES (?, ?)" id name))
+             (update (id name)
+               (do-sql *db* "UPDATE person SET name = ? WHERE id = ?" name id))
+             (check (id name)
+
+               ))
+      (begin-transaction *db*)
+      (insert 6 "meymao")
+      (savepoint *db* "test")
+      (update 6 "mizuna") 
+      (is (fetch (execute (prepare *db* "SELECT name FROM person WHERE id = 6")))
+          '(:|name| "mizuna"))
+      (rollback-to-savepoint *db* "test")
+      (is (fetch (execute (prepare *db* "SELECT name FROM person WHERE id = 6")))
+          '(:|name| "meymao"))
+      (update 6 "mizuna") 
+      (release-savepoint *db* "test")
+      (is (fetch (execute (prepare *db* "SELECT name FROM person WHERE id = 6")))
+          '(:|name| "mizuna"))
+      (commit *db*))
+    (dbi.error:<dbi-notsupported-error> ()
+                                        (skip 1 "Not supporrted"))))
 
 (deftest |statement error|
   (is-type (handler-case (do-sql *db* "INSERT")
