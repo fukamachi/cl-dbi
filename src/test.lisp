@@ -96,7 +96,8 @@
         (check 6 '(:|name| "meymao"))
         (update 6 "mizuna") 
         (release-savepoint *db* "test")
-        (check 6 '(:|name| "mizuna"))))
+        (check 6 '(:|name| "mizuna"))
+        (commit *db*)))
     (dbi.error:<dbi-notsupported-error> ()
       (skip 1 "Not supporrted"))))
 
