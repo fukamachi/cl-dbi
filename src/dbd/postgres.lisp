@@ -6,7 +6,8 @@
         :cl-postgres)
   (:import-from :cl-postgres
                 :connection-socket
-                :send-parse)
+                :send-parse
+                :set-sql-datetime-readers)
   (:import-from :cl-postgres-error
                 :database-error
                 :syntax-error-or-access-violation
@@ -32,7 +33,12 @@
    (%deallocation-queue :type list
                         :initform nil)))
 
-(defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no))
+(defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no) (microsecond-precision nil))
+  (when microsecond-precision
+    (cl-postgres:set-sql-datetime-readers
+     :timestamp (lambda (usec)
+                  (+ #.(encode-universal-time 0 0 0 1 1 2000 0)
+                     (/ usec 1000000.0d0)))))
   (make-instance '<dbd-postgres-connection>
      :database-name database-name
      :handle (open-database database-name username password host port use-ssl)))
