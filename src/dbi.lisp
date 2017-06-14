@@ -21,6 +21,7 @@
                 :savepoint
                 :rollback-savepoint
                 :release-savepoint
+                :*current-savepoint*
                 :ping
                 :row-count)
   (:import-from :bordeaux-threads
@@ -134,18 +135,17 @@
 @export
 (defmacro with-savepoint (conn &body body)
   (let ((ok (gensym "SAVEPOINT-OK"))
-        (conn-var (gensym "CONN-VAR"))
-        (identifier (gensym "IDENTIFIER")))
-    `(let (,ok
-           (,conn-var ,conn)
-           (,identifier (generate-random-string)))
-       (savepoint ,conn-var ,identifier)
+        (conn-var (gensym "CONN-VAR")))
+    `(let* (,ok
+            (,conn-var ,conn)
+            (*current-savepoint* (generate-random-string)))
+       (savepoint ,conn-var *current-savepoint*)
        (unwind-protect (multiple-value-prog1
                            (progn ,@body)
                          (setf ,ok t))
          (if ,ok
-             (release-savepoint ,conn-var ,identifier)
-             (rollback-savepoint ,conn-var ,identifier))))))
+             (release-savepoint ,conn-var)
+             (rollback-savepoint ,conn-var))))))
 
 (defvar *in-transaction* nil)
 

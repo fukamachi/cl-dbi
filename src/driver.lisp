@@ -143,6 +143,8 @@ This method must be implemented in each drivers.")
     (error '<dbi-unimplemented-error>
            :method-name 'execute-using-connection)))
 
+(defvar *in-transaction* nil)
+
 @export
 (defgeneric begin-transaction (conn)
   (:documentation "Start a transaction.")
@@ -161,12 +163,19 @@ This method must be implemented in each drivers.")
          (setf auto-commit saved)))))
 
 @export
+(defvar *current-savepoint* nil)
+
+@export
 (defgeneric commit (conn)
   (:documentation "Commit changes and end the current transaction.")
   (:method ((conn <dbi-connection>))
     @ignore conn
     (error '<dbi-notsupported-error>
-           :method-name 'commit)))
+           :method-name 'commit))
+  (:method :around ((conn <dbi-connection>))
+    (if *current-savepoint*
+        (release-savepoint conn *current-savepoint*)
+        (call-next-method))))
 
 @export
 (defgeneric rollback (conn)
@@ -174,7 +183,11 @@ This method must be implemented in each drivers.")
   (:method ((conn <dbi-connection>))
     @ignore conn
     (error '<dbi-notsupported-error>
-           :method-name 'rollback)))
+           :method-name 'rollback))
+  (:method :around ((conn <dbi-connection>))
+    (if *current-savepoint*
+        (rollback-savepoint conn *current-savepoint*)
+        (call-next-method))))
 
 @export
 (defgeneric savepoint (conn identifier)
@@ -182,13 +195,13 @@ This method must be implemented in each drivers.")
     (do-sql conn (format nil "SAVEPOINT ~A" identifier))))
 
 @export
-(defgeneric rollback-savepoint (conn identifier)
-  (:method ((conn <dbi-connection>) identifier)
+(defgeneric rollback-savepoint (conn &optional identifier)
+  (:method ((conn <dbi-connection>) &optional (identifier *current-savepoint*))
     (do-sql conn (format nil "ROLLBACK TO ~A" identifier))))
 
 @export
-(defgeneric release-savepoint (conn identifier)
-  (:method ((conn <dbi-connection>) identifier)
+(defgeneric release-savepoint (conn &optional identifier)
+  (:method ((conn <dbi-connection>) &optional (identifier *current-savepoint*))
     (do-sql conn (format nil "RELEASE ~A" identifier))))
 
 @export
