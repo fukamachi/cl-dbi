@@ -177,6 +177,21 @@ This method must be implemented in each drivers.")
            :method-name 'rollback)))
 
 @export
+(defgeneric savepoint (conn identifier)
+  (:method ((conn <dbi-connection>) identifier)
+    (do-sql conn (format nil "SAVEPOINT ~A" identifier))))
+
+@export
+(defgeneric rollback-savepoint (conn identifier)
+  (:method ((conn <dbi-connection>) identifier)
+    (do-sql conn (format nil "ROLLBACK TO ~A" identifier))))
+
+@export
+(defgeneric release-savepoint (conn identifier)
+  (:method ((conn <dbi-connection>) identifier)
+    (do-sql conn (format nil "RELEASE ~A" identifier))))
+
+@export
 (defgeneric ping (conn)
   (:documentation
    "Check if the database server is still running and the connection to it is still working.")

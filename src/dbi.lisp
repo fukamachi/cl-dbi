@@ -18,6 +18,9 @@
                 :begin-transaction
                 :commit
                 :rollback
+                :savepoint
+                :rollback-savepoint
+                :release-savepoint
                 :ping
                 :row-count)
   (:import-from :bordeaux-threads
@@ -36,6 +39,9 @@
            :begin-transaction
            :commit
            :rollback
+           :savepoint
+           :rollback-savepoint
+           :release-savepoint
            :ping
            :row-count
 
@@ -122,13 +128,33 @@
     #-quicklisp
     (asdf:load-system driver-system :verbose nil)))
 
+(defun generate-random-string ()
+  (format nil "~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
+
 @export
-(defmacro with-transaction (conn &body body)
-  "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
+(defmacro with-savepoint (conn &body body)
+  (let ((ok (gensym "SAVEPOINT-OK"))
+        (conn-var (gensym "CONN-VAR"))
+        (identifier (gensym "IDENTIFIER")))
+    `(let (,ok
+           (,conn-var ,conn)
+           (,identifier (generate-random-string)))
+       (savepoint ,conn-var ,identifier)
+       (unwind-protect (multiple-value-prog1
+                           (progn ,@body)
+                         (setf ,ok t))
+         (if ,ok
+             (release-savepoint ,conn-var ,identifier)
+             (rollback-savepoint ,conn-var ,identifier))))))
+
+(defvar *in-transaction* nil)
+
+(defmacro %with-transaction (conn &body body)
   (let ((ok (gensym "TRANSACTION-OK"))
         (conn-var (gensym "CONN-VAR")))
     `(let (,ok
-           (,conn-var ,conn))
+           (,conn-var ,conn)
+           (*in-transaction* t))
        (begin-transaction ,conn-var)
        (unwind-protect (multiple-value-prog1
                          (progn ,@body)
@@ -136,6 +162,13 @@
          (if ,ok
              (commit ,conn-var)
              (rollback ,conn-var))))))
+
+@export
+(defmacro with-transaction (conn &body body)
+  "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
+  `(if *in-transaction*
+       (with-savepoint ,conn ,@body)
+       (%with-transaction ,conn ,@body)))
 
 @export
 (defmacro with-connection ((conn-sym &rest rest) &body body)
