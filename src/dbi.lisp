@@ -129,8 +129,8 @@
     #-quicklisp
     (asdf:load-system driver-system :verbose nil)))
 
-(defun generate-random-string ()
-  (format nil "~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
+(defun generate-random-savepoint ()
+  (format nil "savepoint_~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
 
 @export
 (defmacro with-savepoint (conn &body body)
@@ -138,7 +138,7 @@
         (conn-var (gensym "CONN-VAR")))
     `(let* (,ok
             (,conn-var ,conn)
-            (*current-savepoint* (generate-random-string)))
+            (*current-savepoint* (generate-random-savepoint)))
        (savepoint ,conn-var *current-savepoint*)
        (unwind-protect (multiple-value-prog1
                            (progn ,@body)
