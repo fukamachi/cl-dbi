@@ -120,6 +120,11 @@
 (defmethod fetch ((query <dbd-postgres-query>))
   (pop (slot-value query '%result)))
 
+(defmethod do-sql ((conn <dbd-postgres-connection>) sql &rest params)
+  (if params
+      (call-next-method)
+      (exec-query (connection-handle conn) sql)))
+
 (defmethod disconnect ((conn <dbd-postgres-connection>))
   (close-database (connection-handle conn)))
 
