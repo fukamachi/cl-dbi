@@ -152,12 +152,12 @@
 (defmacro %with-transaction (conn &body body)
   (let ((ok (gensym "TRANSACTION-OK"))
         (conn-var (gensym "CONN-VAR")))
-    `(let (,ok
-           (,conn-var ,conn)
-           (*in-transaction* t))
+    `(let* (,ok
+            (,conn-var ,conn)
+            (*in-transaction* (cons ,conn-var *in-transaction*)))
        (begin-transaction ,conn-var)
        (unwind-protect (multiple-value-prog1
-                         (progn ,@body)
+                           (progn ,@body)
                          (setf ,ok t))
          (if ,ok
              (commit ,conn-var)
@@ -166,9 +166,11 @@
 @export
 (defmacro with-transaction (conn &body body)
   "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
-  `(if *in-transaction*
-       (with-savepoint ,conn ,@body)
-       (%with-transaction ,conn ,@body)))
+  (let ((conn-var (gensym "CONN-VAR")))
+    `(let ((,conn-var ,conn))
+       (if (find ,conn-var *in-transaction* :test #'eq)
+           (with-savepoint ,conn-var ,@body)
+           (%with-transaction ,conn-var ,@body)))))
 
 @export
 (defmacro with-connection ((conn-sym &rest rest) &body body)
