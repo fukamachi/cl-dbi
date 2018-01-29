@@ -148,9 +148,9 @@
                t))
       ((or cl-postgres-error:admin-shutdown
            cl-postgres-error:crash-shutdown
-           cl-postgres-error:cannot-connect-now) (e)
-        @ignore e
-        nil))))
+           cl-postgres-error:cannot-connect-now) ()
+        nil)
+      (error () nil))))
 
 (defmethod row-count ((conn <dbd-postgres-connection>))
   (slot-value conn '%modified-row-count))
