@@ -33,6 +33,13 @@
    (%deallocation-queue :type list
                         :initform nil)))
 
+(defun get-default-user ()
+  (string-right-trim '(#\Newline #\Return)
+                     (with-output-to-string (s)
+                       (uiop:run-program "psql postgres -c 'select current_user' -t -A"
+                                         :output s
+                                         :error :interactive))))
+
 (defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no) (microsecond-precision nil))
   (when microsecond-precision
     (cl-postgres:set-sql-datetime-readers
@@ -41,7 +48,12 @@
                      (/ usec 1000000.0d0)))))
   (make-instance '<dbd-postgres-connection>
      :database-name database-name
-     :handle (open-database database-name username password host port use-ssl)))
+     :handle (open-database database-name
+                            (or username (get-default-user))
+                            password
+                            host
+                            port
+                            use-ssl)))
 
 @export
 (defclass <dbd-postgres-query> (<dbi-query>)
