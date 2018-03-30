@@ -32,11 +32,12 @@
           :initform t
           :accessor sqlite3-use-store)))
 
-(defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key)
+(defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key (store t))
   (handler-case
       (make-instance '<dbd-sqlite3-query>
          :connection conn
-         :prepared (prepare-statement (connection-handle conn) sql))
+         :prepared (prepare-statement (connection-handle conn) sql)
+         :store store)
     (sqlite-error (e)
       (if (eq (sqlite-error-code e) :error)
           (error '<dbi-programming-error>
