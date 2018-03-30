@@ -3,7 +3,8 @@
   (:use :cl
         :dbi.driver
         :dbi.error
-        :sqlite)
+        :sqlite
+        :annot.class)
   (:shadowing-import-from :dbi.driver
                           :disconnect)
   (:import-from :uiop/filesystem
