@@ -23,8 +23,13 @@
      :database-name database-name
      :handle (connect database-name :busy-timeout busy-timeout)))
 
+@export
+@export-accessors
 (defclass <dbd-sqlite3-query> (<dbi-query>)
-  (%first-result))
+  (%results
+   (store :initarg :store
+          :initform t
+          :accessor sqlite3-use-store)))
 
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key)
   (handler-case
@@ -46,9 +51,12 @@
     (let ((count 0))
       (dolist (param params)
         (bind-parameter prepared (incf count) param)))
-    (slot-makunbound query '%first-result)
-    (setf (slot-value query '%first-result)
-          (fetch-using-connection conn query))
+    (slot-makunbound query '%results)
+    (when (sqlite3-use-store query)
+      (setf (slot-value query '%results)
+            (loop for result = (fetch-using-connection conn query)
+                  while result
+                  collect result)))
     query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
@@ -66,10 +74,8 @@
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>))
   @ignore conn
-  (if (slot-boundp query '%first-result)
-      (prog1
-          (slot-value query '%first-result)
-        (slot-makunbound query '%first-result))
+  (if (slot-boundp query '%results)
+      (pop (slot-value query '%results))
       (let ((prepared (query-prepared query)))
         (when (handler-case (step-statement prepared)
                 (sqlite-error (e)
