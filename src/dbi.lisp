@@ -125,9 +125,9 @@
 
 (defun load-driver (driver-name)
   (let ((driver-system (intern (format nil "DBD-~A" driver-name) :keyword)))
-    #+quicklisp (ql:quickload driver-system :verbose nil :silent t)
-    #-quicklisp
-    (asdf:load-system driver-system :verbose nil)))
+    (if (find :quicklisp *features*)
+        (uiop:symbol-call :ql :quickload driver-system :verbose nil :silent t)
+        (asdf:load-system driver-system :verbose nil))))
 
 (defun generate-random-savepoint ()
   (format nil "savepoint_~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
