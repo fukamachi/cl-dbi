@@ -61,6 +61,17 @@
    (%result :initarg :%result
             :initform nil)))
 
+(defmacro with-handling-pg-errors (&body body)
+  `(handler-case (progn ,@body)
+     (syntax-error-or-access-violation (e)
+       (error '<dbi-programming-error>
+              :message (database-error-message e)
+              :error-code (database-error-code e)))
+     (database-error (e)
+       (error '<dbi-database-error>
+              :message (database-error-message e)
+              :error-code (database-error-code e)))))
+
 (defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
   ;; Deallocate used prepared statements here,
   ;; because GC finalizer may run during processing another query and fail.
@@ -79,55 +90,39 @@
                   if (and (char= c #\?) (not escaped))
                     do (format s "$~D" (incf i))
                   else do (write-char c s))))
-    (handler-case
-        (let* ((conn-handle (connection-handle conn))
-               (query (make-instance '<dbd-postgres-query>
-                                     :connection conn
-                                     :name name
-                                     :prepared (prepare-query conn-handle name sql))))
-          (finalize query
-                    (lambda ()
-                      (when (database-open-p conn-handle)
-                        (push name (slot-value conn '%deallocation-queue))))))
-      (syntax-error-or-access-violation (e)
-        (error '<dbi-programming-error>
-               :message (database-error-message e)
-               :error-code (database-error-code e)))
-      (database-error (e)
-        (error '<dbi-database-error>
-               :message (database-error-message e)
-               :error-code (database-error-code e))))))
+    (with-handling-pg-errors
+      (let* ((conn-handle (connection-handle conn))
+             (query (make-instance '<dbd-postgres-query>
+                                   :connection conn
+                                   :name name
+                                   :prepared (prepare-query conn-handle name sql))))
+        (finalize query
+                  (lambda ()
+                    (when (database-open-p conn-handle)
+                      (push name (slot-value conn '%deallocation-queue)))))))))
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
-  (handler-case
-      (multiple-value-bind (result count)
-          (exec-prepared (connection-handle conn)
-                         (slot-value query 'name)
-                         params
-                         ;; TODO: lazy fetching
-                         (row-reader (fields)
-                           (let ((result
-                                   (loop while (next-row)
-                                         collect (loop for field across fields
-                                                       collect (intern (field-name field) :keyword)
-                                                       collect (next-field field)))))
-                             (setf (slot-value query '%result)
-                                   result)
-                             query)))
-        (or result
-            (progn
-              (setf (slot-value conn '%modified-row-count) count)
-              (make-instance '<dbd-postgres-query>
-                             :connection conn
-                             :%result (list count)))))
-    (syntax-error-or-access-violation (e)
-      (error '<dbi-programming-error>
-             :message (database-error-message e)
-             :error-code (database-error-code e)))
-    (database-error (e)
-      (error '<dbi-database-error>
-             :message (database-error-message e)
-             :error-code (database-error-code e)))))
+  (with-handling-pg-errors
+    (multiple-value-bind (result count)
+        (exec-prepared (connection-handle conn)
+                       (slot-value query 'name)
+                       params
+                       ;; TODO: lazy fetching
+                       (row-reader (fields)
+                         (let ((result
+                                 (loop while (next-row)
+                                       collect (loop for field across fields
+                                                     collect (intern (field-name field) :keyword)
+                                                     collect (next-field field)))))
+                           (setf (slot-value query '%result)
+                                 result)
+                           query)))
+      (or result
+          (progn
+            (setf (slot-value conn '%modified-row-count) count)
+            (make-instance '<dbd-postgres-query>
+                           :connection conn
+                           :%result (list count)))))))
 
 (defmethod fetch ((query <dbd-postgres-query>))
   (pop (slot-value query '%result)))
@@ -135,7 +130,8 @@
 (defmethod do-sql ((conn <dbd-postgres-connection>) sql &rest params)
   (if params
       (call-next-method)
-      (exec-query (connection-handle conn) sql)))
+      (with-handling-pg-errors
+        (exec-query (connection-handle conn) sql))))
 
 (defmethod disconnect ((conn <dbd-postgres-connection>))
   (close-database (connection-handle conn)))
