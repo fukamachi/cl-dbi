@@ -123,9 +123,25 @@
                (remhash thread *threads-connection-pool*)))
            *threads-connection-pool*))
 
+(defmacro with-retrying (&body body)
+  (let ((retrying (gensym))
+        (e (gensym))
+        (restart (gensym)))
+    `(let ((,retrying (make-hash-table :test 'equal)))
+       (handler-bind ((asdf:missing-component
+                        (lambda (,e)
+                          (unless (gethash (asdf::missing-requires ,e) ,retrying)
+                            (let ((,restart (find-restart 'asdf:clear-configuration-and-retry)))
+                              (when ,restart
+                                (setf (gethash (asdf::missing-requires ,e) ,retrying) t)
+                                (invoke-restart ,restart)))))))
+         ,@body))))
+
 (defun load-driver (driver-name)
   (let ((driver-system (intern (format nil "DBD-~A" driver-name) :keyword)))
-    #+quicklisp (ql:quickload driver-system :verbose nil :silent t)
+    #+quicklisp
+    (with-retrying
+      (ql:quickload driver-system :verbose nil :silent t))
     #-quicklisp
     (asdf:load-system driver-system :verbose nil)))
 
