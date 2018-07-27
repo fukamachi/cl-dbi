@@ -131,9 +131,10 @@
        (handler-bind ((asdf:missing-component
                         (lambda (,e)
                           (unless (gethash (asdf::missing-requires ,e) ,retrying)
-                            (let ((,restart (find-restart 'asdf:clear-configuration-and-retry)))
+                            (let ((,restart (find-restart 'asdf:retry)))
                               (when ,restart
                                 (setf (gethash (asdf::missing-requires ,e) ,retrying) t)
+                                (asdf:clear-configuration)
                                 (invoke-restart ,restart)))))))
          ,@body))))
 
