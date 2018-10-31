@@ -40,12 +40,17 @@
                                          :output s
                                          :error :interactive))))
 
+
+(defun usec-convert (usec)
+  (+ #.(encode-universal-time 0 0 0 1 1 2000 0)
+     (/ usec 1000000.0d0)))
+
 (defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no) (microsecond-precision nil))
   (when microsecond-precision
     (cl-postgres:set-sql-datetime-readers
-     :timestamp (lambda (usec)
-                  (+ #.(encode-universal-time 0 0 0 1 1 2000 0)
-                     (/ usec 1000000.0d0)))))
+     :timestamp #'usec-convert
+     :timestamp-with-timezone #'usec-convert
+     :time #'usec-convert))
   (make-instance '<dbd-postgres-connection>
      :database-name database-name
      :handle (open-database database-name
