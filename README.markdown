@@ -47,7 +47,17 @@ This library is especially convenient when you want to use different databases i
 
 ## Installation
 
-This library will be available on Quicklisp when ready for use.
+This library is available on [Quicklisp](https://www.quicklisp.org/).
+
+```common-lisp
+CL-USER> (ql:quickload :cl-dbi)
+To load "cl-dbi":
+  Load 1 ASDF system:
+    cl-dbi
+; Loading "cl-dbi"
+
+(:CL-DBI)
+```
 
 ## API
 
