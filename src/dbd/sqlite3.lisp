@@ -57,13 +57,16 @@
     (when (sqlite3-use-store query)
       (setf (slot-value query '%results)
             (loop for result = (fetch-using-connection conn query)
-                  while result
-                  collect result)))
+               while result
+               collect result)))
+    (finalize-statement prepared)
     query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
   (handler-case
-      (apply #'execute-non-query (connection-handle conn) sql params)
+      (progn
+        (apply #'execute-non-query (connection-handle conn) sql params)
+        (finalize-statement prepared))
     (sqlite-error (e)
       (if (eq (sqlite-error-code e) :error)
           (error '<dbi-programming-error>
@@ -82,6 +85,7 @@
         (when (handler-case (step-statement prepared)
                 (sqlite-error (e)
                   @ignore e
+                  (finalize-statement prepared)
                   nil))
           (loop for column in (statement-column-names prepared)
                 for i from 0
