@@ -64,9 +64,7 @@
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
   (handler-case
-      (progn
-        (apply #'execute-non-query (connection-handle conn) sql params)
-        (finalize-statement prepared))
+      (apply #'execute-non-query (connection-handle conn) sql params)
     (sqlite-error (e)
       (if (eq (sqlite-error-code e) :error)
           (error '<dbi-programming-error>
