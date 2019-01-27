@@ -104,12 +104,15 @@
   (sqlite:execute-non-query (connection-handle conn) "ROLLBACK TRANSACTION"))
 
 (defmethod ping ((conn <dbd-sqlite3-connection>))
-  "Return T if the database file exists or the database is in-memory."
+  "Return non nil if the database file exists or the database is in-memory.
+   The actual  non-nil value  of this  expression is  the path  to the
+   database file  in the first  case or  the keyword ':memory'  in the
+   second."
   (let* ((handle (connection-handle conn))
          (database-path (sqlite::database-path handle)))
     (cond
-      ((string= database-path ":memory:") T)
-      ((uiop:file-exists-p database-path) T)
+      ((string= database-path ":memory:") :memory)
+      ((uiop:file-exists-p database-path) database-path)
       (T nil))))
 
 (defmethod row-count ((conn <dbd-sqlite3-connection>))
