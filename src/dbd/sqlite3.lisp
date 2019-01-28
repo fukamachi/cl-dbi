@@ -7,6 +7,8 @@
         :annot.class)
   (:shadowing-import-from :dbi.driver
                           :disconnect)
+  (:import-from :trivial-garbage
+                :finalize)
   (:import-from :uiop/filesystem
                 :file-exists-p))
 (in-package :dbd.sqlite3)
@@ -33,19 +35,25 @@
           :accessor sqlite3-use-store)))
 
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key (store t))
-  (handler-case
-      (make-instance '<dbd-sqlite3-query>
-         :connection conn
-         :prepared (prepare-statement (connection-handle conn) sql)
-         :store store)
-    (sqlite-error (e)
-      (if (eq (sqlite-error-code e) :error)
-          (error '<dbi-programming-error>
-                 :message (sqlite-error-message e)
-                 :error-code (sqlite-error-code e))
-          (error '<dbi-database-error>
-                 :message (sqlite-error-message e)
-                 :error-code (sqlite-error-code e))))))
+  (let* ((conn-handle (connection-handle conn))
+         (query
+           (handler-case
+               (make-instance '<dbd-sqlite3-query>
+                              :connection conn
+                              :prepared (prepare-statement conn-handle sql)
+                              :store store)
+             (sqlite-error (e)
+               (if (eq (sqlite-error-code e) :error)
+                   (error '<dbi-programming-error>
+                          :message (sqlite-error-message e)
+                          :error-code (sqlite-error-code e))
+                   (error '<dbi-database-error>
+                          :message (sqlite-error-message e)
+                          :error-code (sqlite-error-code e)))))))
+    (finalize query
+              (lambda ()
+                (when (slot-boundp conn-handle 'sqlite::handle)
+                  (finalize-statement (query-prepared query)))))))
 
 (defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>) params)
   (let ((prepared (query-prepared query)))
@@ -59,7 +67,6 @@
             (loop for result = (fetch-using-connection conn query)
                while result
                collect result)))
-    (finalize-statement prepared)
     query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
@@ -83,7 +90,6 @@
         (when (handler-case (step-statement prepared)
                 (sqlite-error (e)
                   @ignore e
-                  (finalize-statement prepared)
                   nil))
           (loop for column in (statement-column-names prepared)
                 for i from 0
