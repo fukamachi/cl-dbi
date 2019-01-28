@@ -83,7 +83,6 @@
         (when (handler-case (step-statement prepared)
                 (sqlite-error (e)
                   @ignore e
-                  (finalize-statement prepared)
                   nil))
           (loop for column in (statement-column-names prepared)
                 for i from 0
