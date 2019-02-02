@@ -50,10 +50,7 @@
                    (error '<dbi-database-error>
                           :message (sqlite-error-message e)
                           :error-code (sqlite-error-code e)))))))
-    (finalize query
-              (lambda ()
-                (when (slot-boundp conn-handle 'sqlite::handle)
-                  (finalize-statement (query-prepared query)))))))
+    query))
 
 (defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>) params)
   (let ((prepared (query-prepared query)))
@@ -121,3 +118,6 @@
 
 (defmethod row-count ((conn <dbd-sqlite3-connection>))
   (second (fetch (execute (prepare conn "SELECT changes()")))))
+
+(defmethod free-query-resources ((query <dbd-sqlite3-query>))
+  (finalize-statement (query-prepared query)))

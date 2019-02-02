@@ -19,7 +19,8 @@
   (loop for row = (dbi:fetch result)
      while row
      ;; process "row".
-       ))
+  )
+  (free-query-resources query))
 ```
 
 ### Using `dbi:with-connection` to ensure connections are closed
@@ -96,7 +97,8 @@ To load "cl-dbi":
 * commit [conn]
 * rollback [conn]
 * ping [conn] =&gt; T or NIL
-* row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
+* row-count [conn] =&gt; a number of rows modified by the last executed INSERT/UPDATE/DELETE
+* free-query-resources [query] free resources associated with a prepared query (this is required only for sqlite3 driver at the moment)
 
 ## Creating a new driver
 
@@ -131,4 +133,3 @@ Copyright (c) 2011 Eitaro Fukamachi (e.arrows@gmail.com)
 # License
 
 Licensed under the LLGPL License.
-
