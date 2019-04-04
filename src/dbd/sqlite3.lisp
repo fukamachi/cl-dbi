@@ -112,6 +112,8 @@
 
 (defmethod ping ((conn <dbd-sqlite3-connection>))
   "Return T if the database file exists or the database is in-memory."
+  (unless (slot-boundp (connection-handle conn) 'sqlite::handle)
+    (return-from ping nil))
   (let* ((handle (connection-handle conn))
          (database-path (sqlite::database-path handle)))
     (cond
