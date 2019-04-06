@@ -23,7 +23,8 @@
                 :release-savepoint
                 :*current-savepoint*
                 :ping
-                :row-count)
+                :row-count
+                :free-query-resources)
   (:import-from :bordeaux-threads
                 :current-thread
                 :thread-alive-p)
@@ -45,6 +46,7 @@
            :release-savepoint
            :ping
            :row-count
+           :free-query-resources
 
            :<dbi-error>
            :<dbi-warning>

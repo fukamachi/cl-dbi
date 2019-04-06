@@ -223,6 +223,14 @@ This method must be implemented in each drivers.")
            :method-name 'row-count)))
 
 @export
+(defgeneric free-query-resources (query)
+  (:documentation "Free  the resources (e.g.  foreign,  heap allocated
+  memory) associated with  this query. This method  is specialized and
+  effective (and should matches each 'prepare' function call) only for
+  <dbd-sqlite3-query>. The default method currently has empty body.")
+  (:method (query))) ;; does nothing
+
+@export
 (defgeneric escape-sql (conn sql)
   (:documentation "Return escaped `sql`.
 This method may be overrided by subclasses when needed.
