@@ -7,6 +7,8 @@
         :annot.class)
   (:shadowing-import-from :dbi.driver
                           :disconnect)
+  (:import-from :trivial-garbage
+                :finalize)
   (:import-from :uiop/filesystem
                 :file-exists-p))
 (in-package :dbd.sqlite3)
@@ -33,19 +35,22 @@
           :accessor sqlite3-use-store)))
 
 (defmethod prepare ((conn <dbd-sqlite3-connection>) (sql string) &key (store t))
-  (handler-case
-      (make-instance '<dbd-sqlite3-query>
-         :connection conn
-         :prepared (prepare-statement (connection-handle conn) sql)
-         :store store)
-    (sqlite-error (e)
-      (if (eq (sqlite-error-code e) :error)
-          (error '<dbi-programming-error>
-                 :message (sqlite-error-message e)
-                 :error-code (sqlite-error-code e))
-          (error '<dbi-database-error>
-                 :message (sqlite-error-message e)
-                 :error-code (sqlite-error-code e))))))
+  (let* ((conn-handle (connection-handle conn))
+         (query
+           (handler-case
+               (make-instance '<dbd-sqlite3-query>
+                              :connection conn
+                              :prepared (prepare-statement conn-handle sql)
+                              :store store)
+             (sqlite-error (e)
+               (if (eq (sqlite-error-code e) :error)
+                   (error '<dbi-programming-error>
+                          :message (sqlite-error-message e)
+                          :error-code (sqlite-error-code e))
+                   (error '<dbi-database-error>
+                          :message (sqlite-error-message e)
+                          :error-code (sqlite-error-code e)))))))
+    query))
 
 (defmethod execute-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>) params)
   (let ((prepared (query-prepared query)))
@@ -59,7 +64,6 @@
             (loop for result = (fetch-using-connection conn query)
                while result
                collect result)))
-    (finalize-statement prepared)
     query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
@@ -108,6 +112,8 @@
    The actual  non-nil value  of this  expression is  the path  to the
    database file  in the first  case or  the keyword ':memory'  in the
    second."
+  (unless (slot-boundp (connection-handle conn) 'sqlite::handle)
+    (return-from ping nil))
   (let* ((handle (connection-handle conn))
          (database-path (sqlite::database-path handle)))
     (cond
@@ -117,3 +123,6 @@
 
 (defmethod row-count ((conn <dbd-sqlite3-connection>))
   (second (fetch (execute (prepare conn "SELECT changes()")))))
+
+(defmethod free-query-resources ((query <dbd-sqlite3-query>))
+  (finalize-statement (query-prepared query)))

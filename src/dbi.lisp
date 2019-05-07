@@ -23,7 +23,8 @@
                 :release-savepoint
                 :*current-savepoint*
                 :ping
-                :row-count)
+                :row-count
+                :free-query-resources)
   (:import-from :bordeaux-threads
                 :current-thread
                 :thread-alive-p)
@@ -45,6 +46,7 @@
            :release-savepoint
            :ping
            :row-count
+           :free-query-resources
 
            :<dbi-error>
            :<dbi-warning>
@@ -113,15 +115,18 @@
              (apply #'connect connect-args)))
       (t conn))))
 
+(defvar *connection-pool-cleanup-lock*
+  (bt:make-lock "connection-pool-cleanup-lock"))
 (defun cleanup-connection-pool ()
-  (maphash (lambda (thread pool)
-             (unless (bt:thread-alive-p thread)
-               (maphash (lambda (args conn)
-                          (declare (ignore args))
-                          (disconnect conn))
-                        pool)
-               (remhash thread *threads-connection-pool*)))
-           *threads-connection-pool*))
+  (bt:with-lock-held (*connection-pool-cleanup-lock*)
+    (maphash (lambda (thread pool)
+               (unless (bt:thread-alive-p thread)
+                 (maphash (lambda (args conn)
+                            (declare (ignore args))
+                            (disconnect conn))
+                          pool)
+                 (remhash thread *threads-connection-pool*)))
+             *threads-connection-pool*)))
 
 (defmacro with-retrying (&body body)
   (let ((retrying (gensym))
