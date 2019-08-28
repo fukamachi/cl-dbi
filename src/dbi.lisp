@@ -21,6 +21,7 @@
                 :savepoint
                 :rollback-savepoint
                 :release-savepoint
+                :*in-transaction*
                 :*current-savepoint*
                 :ping
                 :row-count
@@ -174,8 +175,6 @@
            (if ,ok
                (release-savepoint ,conn-var)
                (rollback-savepoint ,conn-var)))))))
-
-(defvar *in-transaction* nil)
 
 (defmacro %with-transaction (conn &body body)
   (let ((done (gensym "TRANSACTION-DONE"))

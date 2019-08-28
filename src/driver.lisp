@@ -163,6 +163,9 @@ This method must be implemented in each drivers.")
          (setf auto-commit saved)))))
 
 @export
+(defvar *in-transaction* nil)
+
+@export
 (defvar *current-savepoint* nil)
 
 (define-condition transaction-done-condition () ())
@@ -179,7 +182,8 @@ This method must be implemented in each drivers.")
         (if *current-savepoint*
             (release-savepoint conn *current-savepoint*)
             (call-next-method))
-      (error 'transaction-done-condition))))
+      (when *in-transaction*
+        (error 'transaction-done-condition)))))
 
 @export
 (defgeneric rollback (conn)
@@ -193,7 +197,8 @@ This method must be implemented in each drivers.")
         (if *current-savepoint*
             (rollback-savepoint conn *current-savepoint*)
             (call-next-method))
-      (error 'transaction-done-condition))))
+      (when *in-transaction*
+        (error 'transaction-done-condition)))))
 
 @export
 (defgeneric savepoint (conn identifier)
