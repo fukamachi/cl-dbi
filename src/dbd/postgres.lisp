@@ -134,9 +134,11 @@
 
 (defmethod do-sql ((conn <dbd-postgres-connection>) sql &rest params)
   (if params
-      (call-next-method)
+      (progn
+        (call-next-method)
+        (row-count conn))
       (with-handling-pg-errors
-        (exec-query (connection-handle conn) sql))))
+        (or (nth-value 1 (exec-query (connection-handle conn) sql)) 0))))
 
 (defmethod disconnect ((conn <dbd-postgres-connection>))
   (close-database (connection-handle conn)))
