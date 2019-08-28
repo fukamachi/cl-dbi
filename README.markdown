@@ -15,12 +15,24 @@
 
 (let* ((query (dbi:prepare *connection*
                            "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?"))
-       (result (dbi:execute query 0 "2011-11-01")))
+       (query (dbi:execute query 0 "2011-11-01")))
   (loop for row = (dbi:fetch result)
-     while row
-     ;; process "row".
-  )
-  (free-query-resources query))
+        while row
+        ;; process "row".
+        ))
+
+;; Do it at once
+(dbi:fetch-all (dbi:execute (dbi:prepare *connection* "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?")
+                            0 "2011-11-01"))
+```
+
+`dbi:do-sql` is another option which prepare and execute a single statement. It returns the number of rows affected. It's typically used for non-`SELECT` statements.
+
+```common-lisp
+(dbi:do-sql *connection*
+            "INSERT INTO somewhere (flag, updated_at) VALUES (?, NOW())"
+            0)
+;=> 1
 ```
 
 ### Using `dbi:with-connection` to ensure connections are closed
@@ -28,11 +40,15 @@
 ```common-lisp
 (dbi:with-connection (conn :sqlite3 :database-name "/home/fukamachi/test.db")
   (let* ((query (dbi:prepare conn "SELECT * FROM People"))
-         (result (dbi:execute query)))
-    (loop for row = (dbi:fetch result)
-       while row
-       do (format t "~A~%" row))))
+         (query (dbi:execute query)))
+    (loop for row = (dbi:fetch query)
+          while row
+          do (format t "~A~%" row))))
 ```
+
+### Connection pooling
+
+`dbi:connect-cached` returns a existing connection if the database is already connected. Since the cache will be created for each thread, it's safe to use in a multithread application.
 
 ## Description
 
@@ -117,7 +133,7 @@ These methods can be overriden if needed.
 
 ## Hook of SQL execution
 
-CL-DBI provides `dbi:*sql-execution-hooks*`, a hook to run for each SQL execution, especially for logging.
+CL-DBI provides `dbi:*sql-execution-hooks*`, a hook to run for each SQL execution, particularly used for logging.
 
 The hook function takes these 4 values:
 
