@@ -24,6 +24,7 @@
                 :*current-savepoint*
                 :ping
                 :row-count
+                :transaction-done-condition
                 :free-query-resources)
   (:import-from :bordeaux-threads
                 :current-thread
@@ -156,34 +157,46 @@
 
 @export
 (defmacro with-savepoint (conn &body body)
-  (let ((ok (gensym "SAVEPOINT-OK"))
+  (let ((done (gensym "SAVEPOINT-DONE"))
+        (ok (gensym "SAVEPOINT-OK"))
         (conn-var (gensym "CONN-VAR")))
-    `(let* (,ok
+    `(let* (,done
+            ,ok
             (,conn-var ,conn)
             (*current-savepoint* (generate-random-savepoint)))
        (savepoint ,conn-var *current-savepoint*)
-       (unwind-protect (multiple-value-prog1
-                           (progn ,@body)
-                         (setf ,ok t))
-         (if ,ok
-             (release-savepoint ,conn-var)
-             (rollback-savepoint ,conn-var))))))
+       (unwind-protect
+            (handler-case (multiple-value-prog1
+                              (progn ,@body)
+                            (setf ,ok t))
+              (transaction-done-condition () (setf ,done t)))
+         (unless ,done
+           (if ,ok
+               (release-savepoint ,conn-var)
+               (rollback-savepoint ,conn-var)))))))
 
 (defvar *in-transaction* nil)
 
 (defmacro %with-transaction (conn &body body)
-  (let ((ok (gensym "TRANSACTION-OK"))
+  (let ((done (gensym "TRANSACTION-DONE"))
+        (ok (gensym "TRANSACTION-OK"))
         (conn-var (gensym "CONN-VAR")))
-    `(let* (,ok
+    `(let* (,done
+            ,ok
             (,conn-var ,conn)
             (*in-transaction* (cons ,conn-var *in-transaction*)))
        (begin-transaction ,conn-var)
-       (unwind-protect (multiple-value-prog1
-                           (progn ,@body)
-                         (setf ,ok t))
-         (if ,ok
-             (commit ,conn-var)
-             (rollback ,conn-var))))))
+       (unwind-protect
+            (handler-case (multiple-value-prog1
+                              (progn ,@body)
+                            (setf ,ok t))
+              (transaction-done-condition () (setf ,done t)))
+         (unless ,done
+           (handler-case
+               (if ,ok
+                   (commit ,conn-var)
+                   (rollback ,conn-var))
+             (transaction-done-condition ())))))))
 
 @export
 (defmacro with-transaction (conn &body body)

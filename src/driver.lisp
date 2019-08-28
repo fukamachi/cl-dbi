@@ -165,6 +165,8 @@ This method must be implemented in each drivers.")
 @export
 (defvar *current-savepoint* nil)
 
+(define-condition transaction-done-condition () ())
+
 @export
 (defgeneric commit (conn)
   (:documentation "Commit changes and end the current transaction.")
@@ -173,9 +175,11 @@ This method must be implemented in each drivers.")
     (error '<dbi-notsupported-error>
            :method-name 'commit))
   (:method :around ((conn <dbi-connection>))
-    (if *current-savepoint*
-        (release-savepoint conn *current-savepoint*)
-        (call-next-method))))
+    (multiple-value-prog1
+        (if *current-savepoint*
+            (release-savepoint conn *current-savepoint*)
+            (call-next-method))
+      (error 'transaction-done-condition))))
 
 @export
 (defgeneric rollback (conn)
@@ -185,9 +189,11 @@ This method must be implemented in each drivers.")
     (error '<dbi-notsupported-error>
            :method-name 'rollback))
   (:method :around ((conn <dbi-connection>))
-    (if *current-savepoint*
-        (rollback-savepoint conn *current-savepoint*)
-        (call-next-method))))
+    (multiple-value-prog1
+        (if *current-savepoint*
+            (rollback-savepoint conn *current-savepoint*)
+            (call-next-method))
+      (error 'transaction-done-condition))))
 
 @export
 (defgeneric savepoint (conn identifier)
@@ -197,12 +203,18 @@ This method must be implemented in each drivers.")
 @export
 (defgeneric rollback-savepoint (conn &optional identifier)
   (:method ((conn <dbi-connection>) &optional (identifier *current-savepoint*))
-    (do-sql conn (format nil "ROLLBACK TO ~A" identifier))))
+    (do-sql conn (format nil "ROLLBACK TO ~A" identifier)))
+  (:method :after ((conn <dbi-connection>) &optional identifier)
+    (declare (ignore identifier))
+    (error 'transaction-done-condition)))
 
 @export
 (defgeneric release-savepoint (conn &optional identifier)
   (:method ((conn <dbi-connection>) &optional (identifier *current-savepoint*))
-    (do-sql conn (format nil "RELEASE ~A" identifier))))
+    (do-sql conn (format nil "RELEASE ~A" identifier)))
+  (:method :after ((conn <dbi-connection>) &optional identifier)
+    (declare (ignore identifier))
+    (error 'transaction-done-condition)))
 
 @export
 (defgeneric ping (conn)
