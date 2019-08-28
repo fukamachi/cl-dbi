@@ -187,9 +187,11 @@
                             (setf ,ok t))
               (transaction-done-condition () (setf ,done t)))
          (unless ,done
-           (if ,ok
-               (commit ,conn-var)
-               (rollback ,conn-var)))))))
+           (handler-case
+               (if ,ok
+                   (commit ,conn-var)
+                   (rollback ,conn-var))
+             (transaction-done-condition ())))))))
 
 @export
 (defmacro with-transaction (conn &body body)
