@@ -73,16 +73,21 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
 @export
 @export-accessors
 (defclass <dbi-query> ()
-     ((connection :type <dbi-connection>
-                  :initarg :connection
-                  :initform nil
-                  :accessor query-connection)
-      (sql :type string
-           :initarg :sql
-           :accessor query-sql)
-      (prepared :type t
-                :initarg :prepared
-                :accessor query-prepared))
+  ((connection :type <dbi-connection>
+               :initarg :connection
+               :initform nil
+               :accessor query-connection)
+   (sql :type string
+        :initarg :sql
+        :accessor query-sql)
+   (prepared :type t
+             :initarg :prepared
+             :accessor query-prepared)
+   (results :initarg :results
+            :accessor query-results)
+   (row-count :type integer
+              :initarg :row-count
+              :accessor query-row-count))
   (:documentation "Class that represents a prepared DB query."))
 
 @export
@@ -131,8 +136,9 @@ This method may be overrided by subclasses."
   (:documentation "Do preparation and execution at once.
 This method may be overrided by subclasses.")
   (:method ((conn <dbi-connection>) (sql string) &rest params)
-    (apply #'execute (prepare conn sql) params)
-    (row-count conn)))
+    (let ((query (prepare conn sql)))
+      (apply #'execute query params)
+      (query-row-count query))))
 
 @export
 (defgeneric execute-using-connection (conn query params)

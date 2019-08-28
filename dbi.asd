@@ -25,8 +25,9 @@
                :bordeaux-threads)
   :components ((:module "src"
                 :components
-                ((:file "dbi" :depends-on ("driver"))
+                ((:file "dbi" :depends-on ("driver" "logger"))
                  (:file "driver" :depends-on ("error"))
+                 (:file "logger")
                  (:file "error"))))
   :description "Database independent interface for Common Lisp"
   :long-description

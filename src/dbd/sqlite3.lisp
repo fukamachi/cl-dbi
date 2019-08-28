@@ -2,6 +2,7 @@
 (defpackage dbd.sqlite3
   (:use :cl
         :dbi.driver
+        :dbi.logger
         :dbi.error
         :sqlite
         :annot.class)
@@ -29,8 +30,7 @@
 @export
 @export-accessors
 (defclass <dbd-sqlite3-query> (<dbi-query>)
-  (%results
-   (store :initarg :store
+  ((store :initarg :store
           :initform t
           :accessor sqlite3-use-store)))
 
@@ -41,6 +41,7 @@
                (make-instance '<dbd-sqlite3-query>
                               :connection conn
                               :prepared (prepare-statement conn-handle sql)
+                              :sql sql
                               :store store)
              (sqlite-error (e)
                (if (eq (sqlite-error-code e) :error)
@@ -58,12 +59,20 @@
     (let ((count 0))
       (dolist (param params)
         (bind-parameter prepared (incf count) param)))
-    (slot-makunbound query '%results)
-    (when (sqlite3-use-store query)
-      (setf (slot-value query '%results)
-            (loop for result = (fetch-using-connection conn query)
-               while result
-               collect result)))
+    (slot-makunbound query 'dbi.driver::results)
+    (cond
+      ((sqlite3-use-store query)
+       (setf (query-results query)
+             (loop for count from 0
+                   for row = (fetch-using-connection conn query)
+                   while row
+                   collect row into rows
+                   finally
+                   (progn
+                     (setf (query-row-count query) count)
+                     (sql-log (query-sql query) params count nil)
+                     (return rows)))))
+      (t (sql-log (query-sql query) params nil nil)))
     query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
@@ -81,8 +90,8 @@
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>))
   @ignore conn
-  (if (slot-boundp query '%results)
-      (pop (slot-value query '%results))
+  (if (slot-boundp query 'dbi.driver::results)
+      (pop (query-results query))
       (let ((prepared (query-prepared query)))
         (when (handler-case (step-statement prepared)
                 (sqlite-error (e)
@@ -99,13 +108,16 @@
     (sqlite:disconnect (connection-handle conn))))
 
 (defmethod begin-transaction ((conn <dbd-sqlite3-connection>))
-  (sqlite:execute-non-query (connection-handle conn) "BEGIN TRANSACTION"))
+  (sqlite:execute-non-query (connection-handle conn) "BEGIN TRANSACTION")
+  (sql-log "BEGIN TRANSACTION" nil nil nil))
 
 (defmethod commit ((conn <dbd-sqlite3-connection>))
-  (sqlite:execute-non-query (connection-handle conn) "COMMIT TRANSACTION"))
+  (sqlite:execute-non-query (connection-handle conn) "COMMIT TRANSACTION")
+  (sql-log "COMMIT TRANSACTION" nil nil nil))
 
 (defmethod rollback ((conn <dbd-sqlite3-connection>))
-  (sqlite:execute-non-query (connection-handle conn) "ROLLBACK TRANSACTION"))
+  (sqlite:execute-non-query (connection-handle conn) "ROLLBACK TRANSACTION")
+  (sql-log "ROLLBACK TRANSACTION" nil nil nil))
 
 (defmethod ping ((conn <dbd-sqlite3-connection>))
   "Return non nil if the database file exists or the database is in-memory.

@@ -2,6 +2,7 @@
 (defpackage dbd.mysql
   (:use :cl
         :dbi.driver
+        :dbi.logger
         :cl-mysql
         :annot.class)
   (:shadowing-import-from :dbi.driver
@@ -41,9 +42,8 @@
 @export
 @export-accessors
 (defclass <dbd-mysql-query> (<dbi-query>)
-     ((%result :initform nil)
-      (store :initarg :store :initform T
-             :accessor mysql-use-store)))
+  ((store :initarg :store :initform T
+          :accessor mysql-use-store)))
 
 (defstruct (mysql-result-list (:constructor make-mysql-result-list (&optional result-set row-count)))
   (result-set nil :type list)
@@ -75,25 +75,36 @@
         for row = (fetch-next-row handle fields)
         while row
         collect row into rows
-        finally (return (values rows count))))
+        finally (return (values rows
+                                (if fields
+                                    count
+                                    ;; Return the modified count for modification query.
+                                    (first (process-result-set handle (make-hash-table))))))))
 
 (defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-mysql-query>) params)
-  (let ((result
-          (with-error-handler conn
-            (query (apply (query-prepared query) params)
-                   :database (connection-handle conn)
-                   :store nil))))
+  (let* (took-ms
+         (result
+           (with-error-handler conn
+             (with-took-ms took-ms
+               (query (apply (query-prepared query) params)
+                      :database (connection-handle conn)
+                      :store nil)))))
     (return-or-close (owner-pool result) result)
     (next-result-set result)
-    (when (mysql-use-store query)
-      (multiple-value-bind (rows count)
-          (fetch-all-rows result)
-        (setf result (make-mysql-result-list rows count))))
-    (setf (slot-value query '%result) result)
+    (cond
+      ((mysql-use-store query)
+       (multiple-value-bind (rows count)
+           (fetch-all-rows result)
+         (sql-log (query-sql query) params count took-ms)
+         (setf result (make-mysql-result-list rows count))
+         (setf (query-row-count query) count)))
+      (t
+       (sql-log (query-sql query) params nil took-ms)))
+    (setf (query-results query) result)
     query))
 
 (defmethod fetch-using-connection ((conn <dbd-mysql-connection>) query)
-  (let ((result (slot-value query '%result)))
+  (let ((result (query-results query)))
     (if (mysql-result-list-p result)
         (pop (slot-value result 'result-set))
         (fetch-next-row result))))
