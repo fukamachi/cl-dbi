@@ -115,12 +115,24 @@ These methods can be overriden if needed.
 * do-sql
 * escape-sql
 
-## Dependencies
+## Hook of SQL execution
 
-* cl-annot
-* CL-Syntax
-* SPLIT-SEQUENCE
-* closer-mop
+CL-DBI provides `dbi:*sql-execution-hooks*`, a hook to run for each SQL execution, especially for logging.
+
+The hook function takes these 4 values:
+
+- SQL (string)
+- placeholder parameters (list)
+- Row count of the results (integer or null)
+- Took time in miliseconds (integer or null)
+
+The row count and its took time could be null if those values are not available for the driver in some reason.
+
+`dbi:simple-sql-logger` is also provided for just printing those values to `*standard-output*`. It can be enabled with the following code:
+
+```common-lisp
+(push #'dbi:simple-sql-logger dbi:*sql-execution-hooks*)
+```
 
 ## Author
 

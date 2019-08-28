@@ -2,6 +2,7 @@
 (defpackage dbd.postgres
   (:use :cl
         :dbi.driver
+        :dbi.logger
         :dbi.error
         :cl-postgres)
   (:import-from :cl-postgres
@@ -62,9 +63,7 @@
 
 @export
 (defclass <dbd-postgres-query> (<dbi-query>)
-  ((name :initarg :name)
-   (%result :initarg :%result
-            :initform nil)))
+  ((name :initarg :name)))
 
 (defmacro with-handling-pg-errors (&body body)
   `(handler-case (progn ,@body)
@@ -100,6 +99,7 @@
              (query (make-instance '<dbd-postgres-query>
                                    :connection conn
                                    :name name
+                                   :sql sql
                                    :prepared (prepare-query conn-handle name sql))))
         (finalize query
                   (lambda ()
@@ -108,35 +108,48 @@
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
   (with-handling-pg-errors
-    (multiple-value-bind (result count)
-        (exec-prepared (connection-handle conn)
-                       (slot-value query 'name)
-                       params
-                       ;; TODO: lazy fetching
-                       (row-reader (fields)
-                         (let ((result
-                                 (loop while (next-row)
-                                       collect (loop for field across fields
-                                                     collect (intern (field-name field) :keyword)
-                                                     collect (next-field field)))))
-                           (setf (slot-value query '%result)
-                                 result)
-                           query)))
-      (or result
-          (progn
-            (setf (slot-value conn '%modified-row-count) count)
-            (make-instance '<dbd-postgres-query>
-                           :connection conn
-                           :%result (list count)))))))
+    (let (took-ms)
+      (multiple-value-bind (result count)
+          (with-took-ms took-ms
+            (exec-prepared (connection-handle conn)
+                           (slot-value query 'name)
+                           params
+                           ;; TODO: lazy fetching
+                           (row-reader (fields)
+                             (let ((result
+                                     (loop while (next-row)
+                                           collect (loop for field across fields
+                                                         collect (intern (field-name field) :keyword)
+                                                         collect (next-field field)))))
+                               (setf (query-results query) result)
+                               query))))
+        (sql-log (query-sql query) params count took-ms)
+        (or result
+            (progn
+              (setf (slot-value conn '%modified-row-count) count)
+              (make-instance '<dbd-postgres-query>
+                             :connection conn
+                             :sql (query-sql query)
+                             :results (list count)
+                             :row-count count)))))))
 
 (defmethod fetch ((query <dbd-postgres-query>))
-  (pop (slot-value query '%result)))
+  (pop (query-results query)))
 
 (defmethod do-sql ((conn <dbd-postgres-connection>) sql &rest params)
   (if params
-      (call-next-method)
+      (progn
+        (call-next-method)
+        (row-count conn))
       (with-handling-pg-errors
-        (exec-query (connection-handle conn) sql))))
+        (let (took-ms)
+          (let ((row-count
+                  (or (nth-value 1
+                                 (with-took-ms took-ms
+                                   (exec-query (connection-handle conn) sql)))
+                      0)))
+            (sql-log sql params row-count took-ms)
+            row-count)))))
 
 (defmethod disconnect ((conn <dbd-postgres-connection>))
   (close-database (connection-handle conn)))

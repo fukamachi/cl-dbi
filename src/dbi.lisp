@@ -27,6 +27,9 @@
                 :row-count
                 :transaction-done-condition
                 :free-query-resources)
+  (:import-from :dbi.logger
+                :*sql-execution-hooks*
+                :simple-sql-logger)
   (:import-from :bordeaux-threads
                 :current-thread
                 :thread-alive-p)
@@ -60,7 +63,11 @@
            :<dbi-integrity-error>
            :<dbi-internal-error>
            :<dbi-programming-error>
-           :<dbi-notsupported-error>))
+           :<dbi-notsupported-error>
+
+           ;; logger
+           :*sql-execution-hooks*
+           :simple-sql-logger))
 (in-package :dbi)
 
 (cl-syntax:use-syntax :annot)

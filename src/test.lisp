@@ -24,13 +24,13 @@
   (is-type *db* '<dbi-connection>))
 
 (deftest |do-sql|
-  (is (do-sql *db* "DROP TABLE IF EXISTS person") nil)
+  (is (do-sql *db* "DROP TABLE IF EXISTS person") 0)
   (is (do-sql *db* "CREATE TABLE person (id INTEGER PRIMARY KEY, name VARCHAR(24) NOT NULL)")
-      nil)
+      0)
   (is (do-sql *db* "INSERT INTO person (id, name) VALUES (1, 'fukamachi')")
-      nil)
+      1)
   (is (do-sql *db* "INSERT INTO person (id, name) VALUES (2, 'matsuyama')")
-      nil))
+      1))
 
 (deftest |prepare, execute & fetch|
   (let (query result)
