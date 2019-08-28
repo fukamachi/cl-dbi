@@ -20,6 +20,7 @@
   :license "LLGPL"
   :depends-on (:dbi
                :sqlite
+               :trivial-garbage
                :cl-syntax
                :cl-syntax-annot
                :uiop)

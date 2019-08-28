@@ -19,7 +19,8 @@
   (loop for row = (dbi:fetch result)
      while row
      ;; process "row".
-       ))
+  )
+  (free-query-resources query))
 ```
 
 ### Using `dbi:with-connection` to ensure connections are closed
@@ -47,7 +48,17 @@ This library is especially convenient when you want to use different databases i
 
 ## Installation
 
-This library will be available on Quicklisp when ready for use.
+This library is available on [Quicklisp](https://www.quicklisp.org/).
+
+```common-lisp
+CL-USER> (ql:quickload :cl-dbi)
+To load "cl-dbi":
+  Load 1 ASDF system:
+    cl-dbi
+; Loading "cl-dbi"
+
+(:CL-DBI)
+```
 
 ## API
 
@@ -68,7 +79,7 @@ This library will be available on Quicklisp when ready for use.
 * commit [conn]
 * rollback [conn]
 * ping [conn] =&gt; T or NIL
-* row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
+* row-count [conn] =&gt; a number of rows modified by the last executed INSERT/UPDATE/DELETE
 * with-connection [connection-variable-name &body body]
 
 ### Driver-Level API
@@ -86,7 +97,8 @@ This library will be available on Quicklisp when ready for use.
 * commit [conn]
 * rollback [conn]
 * ping [conn] =&gt; T or NIL
-* row-count [conn] =&gt a number of rows modified by the last executed INSERT/UPDATE/DELETE
+* row-count [conn] =&gt; a number of rows modified by the last executed INSERT/UPDATE/DELETE
+* free-query-resources [query] free resources associated with a prepared query (this is required only for sqlite3 driver at the moment)
 
 ## Creating a new driver
 
@@ -121,4 +133,3 @@ Copyright (c) 2011 Eitaro Fukamachi (e.arrows@gmail.com)
 # License
 
 Licensed under the LLGPL License.
-
