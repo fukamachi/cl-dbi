@@ -9,7 +9,7 @@
 (defvar *sql-execution-hooks* '())
 
 (defun simple-sql-logger (sql params row-count took-ms)
-  (format t "~&~<;;~@; ~A (~{~S~^, ~}) ~@[[~D row~:P]~]~@[ (~Dms)~]~:>~%"
+  (format t "~&~<;; ~@;~A (~{~S~^, ~}) ~@[[~D row~:P]~]~@[ (~Dms)~]~:>~%"
           (list sql
                 (mapcar (lambda (param)
                           (if (typep param '(simple-array (unsigned-byte 8) (*)))
