@@ -15,7 +15,6 @@
 (in-package :dbd-mysql-asd)
 
 (defsystem dbd-mysql
-  :version "0.1"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on (:dbi

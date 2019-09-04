@@ -15,7 +15,6 @@
 (in-package :dbd-sqlite3-asd)
 
 (defsystem dbd-sqlite3
-  :version "0.1"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on (:dbi

@@ -15,7 +15,6 @@
 (in-package :dbd-postgres-asd)
 
 (defsystem dbd-postgres
-  :version "0.1"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on (:dbi

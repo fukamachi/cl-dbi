@@ -15,7 +15,7 @@
 (in-package :dbi-asd)
 
 (defsystem dbi
-  :version "0.1"
+  :version "0.9.1"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on (:cl-syntax
