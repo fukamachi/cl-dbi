@@ -4,7 +4,7 @@
 (in-package :cl-dbi-asd)
 
 (defsystem cl-dbi
-  :version "0.9.1"
+  :version "0.9.2"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on (:dbi))
