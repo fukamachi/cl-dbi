@@ -85,7 +85,7 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
              :accessor query-prepared)
    (results :initarg :results
             :accessor query-results)
-   (row-count :type integer
+   (row-count :type (or integer null)
               :initarg :row-count
               :initform nil
               :accessor query-row-count))
