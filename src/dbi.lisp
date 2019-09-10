@@ -179,9 +179,11 @@
                             (setf ,ok t))
               (transaction-done-condition () (setf ,done t)))
          (unless ,done
-           (if ,ok
-               (release-savepoint ,conn-var)
-               (rollback-savepoint ,conn-var)))))))
+           (handler-case
+               (if ,ok
+                   (release-savepoint ,conn-var)
+                   (rollback-savepoint ,conn-var))
+             (transaction-done-condition ())))))))
 
 (defmacro %with-transaction (conn &body body)
   (let ((done (gensym "TRANSACTION-DONE"))
