@@ -76,17 +76,21 @@
     query))
 
 (defmethod do-sql ((conn <dbd-sqlite3-connection>) (sql string) &rest params)
-  (handler-case
-      (apply #'execute-non-query (connection-handle conn) sql params)
-    (sqlite-error (e)
-      (if (eq (sqlite-error-code e) :error)
-          (error '<dbi-programming-error>
-                 :message (sqlite-error-message e)
-                 :error-code (sqlite-error-code e))
-          (error '<dbi-database-error>
-                 :message (sqlite-error-message e)
-                 :error-code (sqlite-error-code e)))))
-  (row-count conn))
+  (let (took-ms)
+    (handler-case
+        (with-took-ms took-ms
+          (apply #'execute-non-query (connection-handle conn) sql params))
+      (sqlite-error (e)
+        (if (eq (sqlite-error-code e) :error)
+            (error '<dbi-programming-error>
+                   :message (sqlite-error-message e)
+                   :error-code (sqlite-error-code e))
+            (error '<dbi-database-error>
+                   :message (sqlite-error-message e)
+                   :error-code (sqlite-error-code e)))))
+    (let ((row-count (row-count conn)))
+      (sql-log sql params row-count took-ms)
+      (values row-count))))
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>))
   @ignore conn
