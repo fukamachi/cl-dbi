@@ -6,8 +6,9 @@
         :dbi.error
         :sqlite
         :annot.class)
-  (:shadowing-import-from :dbi.driver
-                          :disconnect)
+  (:shadowing-import-from #:dbi.driver
+                          #:disconnect
+                          #:with-transaction)
   (:import-from :trivial-garbage
                 :finalize)
   (:import-from :uiop/filesystem

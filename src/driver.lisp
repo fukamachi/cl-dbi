@@ -1,13 +1,15 @@
 (in-package :cl-user)
 (defpackage dbi.driver
-  (:use :cl
-        :annot.class
-        :split-sequence)
-  (:import-from :c2mop
-                :class-direct-subclasses)
-  (:import-from :dbi.error
-                :<dbi-unimplemented-error>
-                :<dbi-notsupported-error>))
+  (:use #:cl
+        #:annot.class
+        #:split-sequence)
+  (:import-from #:dbi.error
+                #:<dbi-error>)
+  (:import-from #:c2mop
+                #:class-direct-subclasses)
+  (:import-from #:dbi.error
+                #:<dbi-unimplemented-error>
+                #:<dbi-notsupported-error>))
 (in-package :dbi.driver)
 
 (cl-syntax:use-syntax :annot)
@@ -150,7 +152,6 @@ This method must be implemented in each drivers.")
     (error '<dbi-unimplemented-error>
            :method-name 'execute-using-connection)))
 
-(defvar *in-transaction* nil)
 
 @export
 (defgeneric begin-transaction (conn)
@@ -169,13 +170,106 @@ This method must be implemented in each drivers.")
        (unwind-protect (call-next-method)
          (setf auto-commit saved)))))
 
-@export
-(defvar *in-transaction* nil)
+(defun generate-random-savepoint ()
+  (format nil "savepoint_~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
 
-@export
-(defvar *current-savepoint* nil)
+(defvar *transaction-state* nil
+  "A stack of transaction and savepoint states.")
 
 (define-condition transaction-done-condition () ())
+
+(defclass <transaction-state> ()
+  ((conn :type '<dbi-connection>
+         :initarg :conn
+         :reader get-conn)
+   (state :initform :in-progress
+          :type (member :in-progress
+                        :commited
+                        :rolled-back)
+          :accessor get-state)))
+
+(defclass <savepoint-state> (<transaction-state>)
+  ((identifier :type string
+               :initform (generate-random-savepoint)
+               :reader get-identifier)))
+
+
+(defun get-transaction-state (conn)
+  "Returns an object representing transaction's state
+   if called inside a transaction block or nil otherwise."
+  (find conn *transaction-state*
+        :test #'eql
+        :key #'get-conn))
+
+
+(defun in-transaction (conn)
+  "Returns True if called inside a transaction block."
+  (not (null (get-transaction-state conn))))
+
+
+@export
+(defmacro with-savepoint (conn &body body)
+  (let ((ok (gensym "SAVEPOINT-OK"))
+        (state-var (gensym "STATE-VAR"))
+        (ident-var (gensym "SAVEPOINT-IDENTIFIER-VAR")))
+    `(let* ((,state-var (make-instance '<savepoint-state>
+                                       :conn ,conn))
+            (,ident-var (get-identifier ,state-var))
+            (*transaction-state*
+              (cons ,state-var
+                    *transaction-state*))
+            ,ok)
+
+       (savepoint ,conn ,ident-var)
+       (unwind-protect
+            (multiple-value-prog1
+                (progn ,@body)
+              (setf ,ok t))
+         (when (eql (get-state ,state-var)
+                    :in-progress)
+           (if ,ok
+               (release-savepoint ,conn ,ident-var)
+               (rollback-savepoint ,conn ,ident-var)))))))
+
+(defmacro %with-transaction (conn &body body)
+  (let ((ok (gensym "TRANSACTION-OK"))
+        (state-var (gensym "STATE-VAR")))
+    `(let* ((state-class (if (in-transaction ,conn)
+                             '<savepoint-state>
+                             '<transaction-state>))
+            (,state-var (make-instance state-class
+                                       :conn ,conn))
+            (*transaction-state*
+              (cons ,state-var
+                    *transaction-state*))
+            ,ok)
+       (begin-transaction ,conn)
+       (unwind-protect
+            (multiple-value-prog1
+                (progn ,@body)
+              (setf ,ok t))
+         (when (eql (get-state ,state-var)
+                    :in-progress)
+           (if ,ok
+               (commit ,conn)
+               (rollback ,conn)))))))
+
+@export
+(defmacro with-transaction (conn &body body)
+  "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
+  (let ((conn-var (gensym "CONN-VAR")))
+    `(let ((,conn-var ,conn))
+       (if (in-transaction ,conn-var)
+           (with-savepoint ,conn-var ,@body)
+           (%with-transaction ,conn-var ,@body)))))
+
+
+(defun assert-is-in-progress (transaction-state)
+  (case (get-state transaction-state)
+    (:commited
+     (error 'dbi.error:<dbi-already-commited-error>))
+    (:rolled-back
+     (error 'dbi.error:<dbi-already-rolled-back-error>))))
 
 @export
 (defgeneric commit (conn)
@@ -185,12 +279,19 @@ This method must be implemented in each drivers.")
     (error '<dbi-notsupported-error>
            :method-name 'commit))
   (:method :around ((conn <dbi-connection>))
-    (multiple-value-prog1
-        (if *current-savepoint*
-            (release-savepoint conn *current-savepoint*)
-            (call-next-method))
-      (when *in-transaction*
-        (error 'transaction-done-condition)))))
+    (let ((state (get-transaction-state conn)))
+      (when state
+        (assert-is-in-progress state)
+
+        (multiple-value-prog1
+            (etypecase state
+              (<savepoint-state>
+               (release-savepoint conn
+                                  (get-identifier state)))
+              (<transaction-state>
+               (call-next-method)))
+          (setf (get-state state)
+                :commited))))))
 
 @export
 (defgeneric rollback (conn)
@@ -200,33 +301,58 @@ This method must be implemented in each drivers.")
     (error '<dbi-notsupported-error>
            :method-name 'rollback))
   (:method :around ((conn <dbi-connection>))
-    (multiple-value-prog1
-        (if *current-savepoint*
-            (rollback-savepoint conn *current-savepoint*)
-            (call-next-method))
-      (when *in-transaction*
-        (error 'transaction-done-condition)))))
+    (let ((state (get-transaction-state conn)))
+      (when state
+        (assert-is-in-progress state)
+
+        (multiple-value-prog1
+            (etypecase state
+              (<savepoint-state>
+               (rollback-savepoint conn
+                                   (get-identifier state)))
+              (<transaction-state>
+               (call-next-method)))
+          (setf (get-state state)
+                :rolled-back))))))
 
 @export
 (defgeneric savepoint (conn identifier)
   (:method ((conn <dbi-connection>) identifier)
     (do-sql conn (format nil "SAVEPOINT ~A" identifier))))
 
+
+(defmacro finalize-savepoint (new-state &body body)
+  `(let ((state (get-transaction-state conn)))
+     (unless (typep state '<savepoint-state>)
+       (error "Please, use release-savepoint inside of with-savepoint block."))
+     (unless (equal (get-identifier state)
+                    identifier)
+       ;; TODO: probably optional `identifier' parameter
+       ;;       is excessive and should be removed?
+       (error "Identifier mismatch"))
+
+     (multiple-value-prog1
+         (progn ,@body)
+       (setf (get-state state)
+             ,new-state))))
+
 @export
 (defgeneric rollback-savepoint (conn &optional identifier)
-  (:method ((conn <dbi-connection>) &optional (identifier *current-savepoint*))
+  (:method ((conn <dbi-connection>) &optional identifier)
     (do-sql conn (format nil "ROLLBACK TO ~A" identifier)))
-  (:method :after ((conn <dbi-connection>) &optional identifier)
-    (declare (ignore identifier))
-    (error 'transaction-done-condition)))
+
+  (:method :around ((conn <dbi-connection>) &optional identifier)
+    (finalize-savepoint :rolled-back
+      (call-next-method conn identifier))))
 
 @export
 (defgeneric release-savepoint (conn &optional identifier)
-  (:method ((conn <dbi-connection>) &optional (identifier *current-savepoint*))
+  (:method ((conn <dbi-connection>) &optional identifier)
     (do-sql conn (format nil "RELEASE ~A" identifier)))
-  (:method :after ((conn <dbi-connection>) &optional identifier)
-    (declare (ignore identifier))
-    (error 'transaction-done-condition)))
+
+  (:method :around ((conn <dbi-connection>) &optional identifier)
+    (finalize-savepoint :commited
+      (call-next-method conn identifier))))
 
 @export
 (defgeneric ping (conn)
