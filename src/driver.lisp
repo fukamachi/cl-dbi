@@ -179,7 +179,7 @@ This method must be implemented in each drivers.")
 (define-condition transaction-done-condition () ())
 
 (defclass <transaction-state> ()
-  ((conn :type '<dbi-connection>
+  ((conn :type <dbi-connection>
          :initarg :conn
          :reader get-conn)
    (state :initform :in-progress
