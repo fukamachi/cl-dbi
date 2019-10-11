@@ -108,8 +108,8 @@
   (handler-case
       (flet ((get-row-number ()
                (getf (first
-                      (execute-and-fetch-all *db* "SELECT COUNT(*) as CNT FROM person"))
-                     :cnt)))
+                      (execute-and-fetch-all *db* "SELECT COUNT(*) as cnt FROM person"))
+                     :|cnt|)))
         (with-transaction *db*
           (do-sql *db* "DROP TABLE IF EXISTS person")
           (do-sql *db* "CREATE TABLE person (id INTEGER PRIMARY KEY, name VARCHAR(24) NOT NULL)")
