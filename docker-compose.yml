@@ -1,0 +1,40 @@
+version: '3.7'
+services:
+  tests:
+    container_name: cl-dbi-tests
+    build:
+      dockerfile: docker/Dockerfile
+      context: .
+      target: base
+    restart: "no"
+    volumes:
+      - ./:/app/
+    depends_on:
+      - postgres
+      - mysql
+    environment:
+      # SKIP_MYSQL: 1
+      # SKIP_POSTGRES: 1
+      # SKIP_SQLITE3: 1
+
+      POSTGRES_HOST: postgres
+      POSTGRES_USER: cl-dbi
+      POSTGRES_PASS: cl-dbi
+      MYSQL_HOST: mysql
+      MYSQL_USER: root
+      MYSQL_PASS: cl-dbi
+
+  postgres:
+    container_name: cl-dbi-postgres
+    image: "postgres:10"
+    restart: always
+    environment:
+      POSTGRES_USER: cl-dbi
+      POSTGRES_PASSWORD: cl-dbi
+
+  mysql:
+    container_name: cl-dbi-mysql
+    image: "mysql:8"
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: cl-dbi

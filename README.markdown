@@ -150,6 +150,78 @@ The row count and its took time could be null if those values are not available 
 (push #'dbi:simple-sql-logger dbi:*sql-execution-hooks*)
 ```
 
+## Development
+
+### Running all tests in the Docker
+
+This will not require you to install Postgres or Mysql.
+All you need is Docker and Docker Compose.
+
+To run all tests, execute this in the shell:
+
+    docker-compose up tests
+
+### Running specific driver's unittests
+
+Running tests with docker-compose does not allow you
+to debug code in SLIME or SLY. To do this, you need
+to start databases as separate containers and to make
+their ports available to the host machine.
+
+Here is how you can start Postgres and Mysql in Docker
+and run unittests agains them:
+
+* Start a docker container with the database
+
+  For example, with postgres:
+
+      docker run --rm -ti \
+             -e POSTGRES_USER=cl-dbi \
+             -e POSTGRES_PASSWORD=cl-dbi \
+             -p 5432:5432 \
+             postgres:10
+
+  Or with mysql:
+
+      docker run --rm -ti \
+             --name cl-dbi \
+             -e MYSQL_ROOT_PASSWORD=cl-dbi \
+             -p 3306:3306 \
+             mysql:8
+
+      docker exec -ti \
+             cl-dbi \
+             mysql -pcl-dbi \
+                   -e 'create database if not exists `cl-dbi`'
+
+* Then in Lisp repl load the unittests:
+
+      (ql:quickload :dbi-test)
+      ;; Turn off colors if you are in the Emacs
+      (setf prove:*enable-colors* nil)
+      ;; Set this to debug failed test
+      (setf prove:*debug-on-error* t)
+
+* And start driver's unittests:
+
+  For postgres:
+
+      (dbi.test:run-driver-tests :postgres
+                                 :database-name "postgres"
+                                 :host "localhost"
+                                 :port 5432
+                                 :username "cl-dbi"
+                                 :password "cl-dbi")
+
+  For mysql:
+
+      (dbi.test:run-driver-tests :mysql
+                                 :database-name "cl-dbi"
+                                 :host "127.0.0.1"
+                                 :port 3306
+                                 :username "root"
+                                 :password "cl-dbi")
+
 ## Author
 
 * Eitaro Fukamachi (e.arrows@gmail.com)
