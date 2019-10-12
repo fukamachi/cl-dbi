@@ -10,15 +10,28 @@
 (cl-syntax:use-syntax :annot)
 
 (defparameter *db* nil)
+(defparameter *driver-name* nil)
 
 @export
 (defun run-driver-tests (driver-name &rest params)
-  (let ((*db* (apply #'connect driver-name params))
-        (*package* (find-package :dbi.test)))
-    (plan 10)
-    (unwind-protect
-         (run-test-package :dbi.test)
-      (disconnect *db*))))
+  (let ((*package* (find-package :dbi.test))
+        (env-var (format nil "SKIP_~A" driver-name)))
+    (cond
+      ((uiop:getenv env-var)
+       (plan 0)
+       (finalize))
+      (t
+       (plan 10)
+       (let ((*db* (apply #'connect driver-name params))
+             (*driver-name* driver-name))
+         (unwind-protect
+              (run-test-package :dbi.test)
+           (disconnect *db*)))))))
+
+
+(defun turn-off-autocommit ()
+  (when (eql *driver-name* :mysql)
+    (do-sql *db* "SET autocommit=0")))
 
 
 (defmacro with-collected-queries (&body body)
@@ -94,6 +107,7 @@
     (is (fetch result) nil)))
 
 (deftest |with-transaction|
+  (turn-off-autocommit)
   (handler-case
       (progn
         (with-transaction *db*
@@ -105,6 +119,8 @@
 
 (deftest |with-nested-transaction|
   "Nested transactions should be transformed into savepoints"
+  (turn-off-autocommit)
+  
   (handler-case
       (flet ((get-row-number ()
                (getf (first
@@ -131,6 +147,7 @@
       (skip 1 "Not supported"))))
 
 (deftest |duplicate-rollback|
+  (turn-off-autocommit)
   (handler-case
       (with-transaction *db*
         (rollback *db*)
@@ -143,6 +160,7 @@
       (skip 1 "Not supported"))))
 
 (deftest |duplicate-commit|
+  (turn-off-autocommit)
   (handler-case
       (with-transaction *db*
         (commit *db*)
@@ -150,11 +168,12 @@
         (prove:is-error (commit *db*)
                         'dbi.error:<dbi-already-commited-error>
                         "Duplicate commit should raise an error"))
-
+    
     (dbi.error:<dbi-notsupported-error> ()
       (skip 1 "Not supported"))))
 
 (deftest |code-execution-after-manual-commit|
+  (turn-off-autocommit)
   (handler-case
       (let (value)
         (with-transaction *db*
