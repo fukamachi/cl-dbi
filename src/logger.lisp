@@ -28,8 +28,7 @@
   (let ((before (gensym "BEFORE")))
     `(let ((,before (get-internal-real-time)))
        (multiple-value-prog1 (progn ,@body)
-         (setf ,took-ms (coerce
+         (setf ,took-ms (ceiling
                          (/ (* (- (get-internal-real-time) ,before)
                                1000)
-                            internal-time-units-per-second)
-                         'integer))))))
+                            internal-time-units-per-second)))))))
