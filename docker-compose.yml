@@ -13,6 +13,8 @@ services:
       - postgres
       - mysql
     environment:
+      # LISP: ccl-bin
+
       # SKIP_MYSQL: 1
       # SKIP_POSTGRES: 1
       # SKIP_SQLITE3: 1
