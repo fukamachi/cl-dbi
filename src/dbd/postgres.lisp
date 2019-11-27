@@ -19,7 +19,8 @@
                 :crash-shutdown
                 :cannot-connect-now)
   (:import-from :trivial-garbage
-                :finalize))
+                :finalize
+                :cancel-finalization))
 (in-package :dbd.postgres)
 
 (cl-syntax:use-syntax :annot)
@@ -185,7 +186,8 @@
 (defmethod free-query-resources ((query <dbd-postgres-query>))
   (unless (query-freed-p query)
     (unprepare-query (connection-handle (query-connection query)) (slot-value query 'name))
-    (setf (query-freed-p query) t)))
+    (setf (query-freed-p query) t)
+    (cancel-finalization query)))
 
 (defmethod row-count ((conn <dbd-postgres-connection>))
   (slot-value conn '%modified-row-count))
