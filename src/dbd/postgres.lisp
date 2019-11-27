@@ -79,7 +79,8 @@
 (defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
   ;; Deallocate used prepared statements here,
   ;; because GC finalizer may run during processing another query and fail.
-  (loop for prepared = (pop (slot-value conn '%deallocation-queue))
+  (loop repeat 10 ;; To prevent from freeing many query objects at once
+        for prepared = (pop (slot-value conn '%deallocation-queue))
         while prepared
         do (unprepare-query (connection-handle conn) prepared))
   (let ((name (symbol-name (gensym "PREPARED-STATEMENT"))))
