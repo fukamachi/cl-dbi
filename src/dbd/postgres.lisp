@@ -178,5 +178,8 @@
         nil)
       (error () nil))))
 
+(defmethod free-query-resources ((query <dbd-postgres-query>))
+  (unprepare-query (connection-handle (query-connection query)) (slot-value query 'name)))
+
 (defmethod row-count ((conn <dbd-postgres-connection>))
   (slot-value conn '%modified-row-count))
