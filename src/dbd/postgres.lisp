@@ -63,7 +63,9 @@
 
 @export
 (defclass <dbd-postgres-query> (<dbi-query>)
-  ((name :initarg :name)))
+  ((name :initarg :name)
+   (freedp :initform nil
+           :accessor query-freed-p)))
 
 (defmacro with-handling-pg-errors (&body body)
   `(handler-case (progn ,@body)
@@ -104,7 +106,8 @@
                                    :prepared (prepare-query conn-handle name sql))))
         (finalize query
                   (lambda ()
-                    (when (database-open-p conn-handle)
+                    (when (and (database-open-p conn-handle)
+                               (not (query-freed-p query)))
                       (push name (slot-value conn '%deallocation-queue)))))))))
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
@@ -180,7 +183,9 @@
       (error () nil))))
 
 (defmethod free-query-resources ((query <dbd-postgres-query>))
-  (unprepare-query (connection-handle (query-connection query)) (slot-value query 'name)))
+  (unless (query-freed-p query)
+    (unprepare-query (connection-handle (query-connection query)) (slot-value query 'name))
+    (setf (query-freed-p query) t)))
 
 (defmethod row-count ((conn <dbd-postgres-connection>))
   (slot-value conn '%modified-row-count))
