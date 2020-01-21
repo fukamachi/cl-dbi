@@ -202,6 +202,7 @@ This method must be implemented in each drivers.")
         :key #'get-conn))
 
 
+@export
 (defun in-transaction (conn)
   "Returns True if called inside a transaction block."
   (not (null (get-transaction-state conn))))

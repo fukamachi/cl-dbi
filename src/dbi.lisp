@@ -16,6 +16,7 @@
                 #:fetch-all
                 #:do-sql
                 #:begin-transaction
+                #:in-transaction
                 #:commit
                 #:rollback
                 #:savepoint
@@ -44,6 +45,7 @@
            #:fetch-all
            #:do-sql
            #:begin-transaction
+           #:in-transaction
            #:commit
            #:rollback
            #:savepoint
