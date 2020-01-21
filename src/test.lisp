@@ -24,7 +24,7 @@
        (plan 0)
        (finalize))
       (t
-       (plan 10)
+       (plan 12)
        (let ((*db* (apply #'connect driver-name params))
              (*driver-name* driver-name))
          (unwind-protect
@@ -160,6 +160,32 @@
         (prove:is-error (rollback *db*)
                         'dbi.error:<dbi-already-rolled-back-error>
                         "Duplicate rollback should raise an error"))
+
+    (dbi.error:<dbi-notsupported-error> ()
+      (skip 1 "Not supported"))))
+
+(deftest |select-after-rollback|
+    (turn-off-autocommit)
+  (handler-case
+      (with-transaction *db*
+        (rollback *db*)
+        ;; Attempt to execute a SELECT after the manual rollback should fail
+        (prove:is-error (do-sql *db* "SELECT 1")
+                        'dbi.error:<dbi-already-rolled-back-error>
+                        "SQL statements should fail after the manual rollback"))
+
+    (dbi.error:<dbi-notsupported-error> ()
+      (skip 1 "Not supported"))))
+
+(deftest |select-after-commit|
+  (turn-off-autocommit)
+  (handler-case
+      (with-transaction *db*
+        (commit *db*)
+        ;; Attempt to execute a SELECT after the manual commit should fail
+        (prove:is-error (do-sql *db* "SELECT 1")
+                        'dbi.error:<dbi-already-commited-error>
+                        "SQL statements should fail after the manual commit"))
 
     (dbi.error:<dbi-notsupported-error> ()
       (skip 1 "Not supported"))))

@@ -141,7 +141,13 @@ This method may be overrided by subclasses.")
   (:method ((conn <dbi-connection>) (sql string) &rest params)
     (let ((query (prepare conn sql)))
       (apply #'execute query params)
-      (query-row-count query))))
+      (query-row-count query)))
+  (:method :around ((conn <dbi-connection>) sql &rest params)
+    (declare (ignorable sql params))
+    (let ((state (get-transaction-state conn)))
+      (when state
+        (assert-transaction-is-in-progress state))
+      (call-next-method))))
 
 @export
 (defgeneric execute-using-connection (conn query params)
@@ -265,7 +271,7 @@ This method must be implemented in each drivers.")
            (%with-transaction ,conn-var ,@body)))))
 
 
-(defun assert-is-in-progress (transaction-state)
+(defun assert-transaction-is-in-progress (transaction-state)
   (case (get-state transaction-state)
     (:commited
      (error 'dbi.error:<dbi-already-commited-error>))
@@ -282,7 +288,7 @@ This method must be implemented in each drivers.")
   (:method :around ((conn <dbi-connection>))
     (let ((state (get-transaction-state conn)))
       (when state
-        (assert-is-in-progress state)
+        (assert-transaction-is-in-progress state)
 
         (multiple-value-prog1
             (etypecase state
@@ -304,7 +310,7 @@ This method must be implemented in each drivers.")
   (:method :around ((conn <dbi-connection>))
     (let ((state (get-transaction-state conn)))
       (when state
-        (assert-is-in-progress state)
+        (assert-transaction-is-in-progress state)
 
         (multiple-value-prog1
             (etypecase state
