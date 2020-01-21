@@ -15,6 +15,7 @@
                :prove
                :closer-mop
                :cl-syntax
+               :alexandria
                :cl-syntax-annot
                :trivial-types)
   :components ((:module "src"

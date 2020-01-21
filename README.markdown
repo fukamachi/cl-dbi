@@ -215,12 +215,27 @@ and run unittests agains them:
 
   For mysql:
 
+      ;; Probably you will need to load library manually if
+      ;; it was installed using Homebrew:
+      (push "/usr/local/opt/mysql-client/lib/" cffi:*foreign-library-directories*)
+      (cffi:load-foreign-library "libmysqlclient.20.dylib"
+                                 :search-path "/usr/local/opt/mysql-client/lib/")
       (dbi.test:run-driver-tests :mysql
                                  :database-name "cl-dbi"
                                  :host "127.0.0.1"
                                  :port 3306
                                  :username "root"
                                  :password "cl-dbi")
+
+  Also, you can run a single test like this:
+  
+      (dbi.test:run-driver-tests :mysql
+                                 :database-name "cl-dbi"
+                                 :host "127.0.0.1"
+                                 :port 3306
+                                 :username "root"
+                                 :password "cl-dbi"
+                                 :test-name '|select-after-commit|)
 
 ## Author
 

@@ -15,7 +15,10 @@
 @export
 (defun run-driver-tests (driver-name &rest params)
   (let ((*package* (find-package :dbi.test))
-        (env-var (format nil "SKIP_~A" driver-name)))
+        (env-var (format nil "SKIP_~A" driver-name))
+        (test-name (getf params :test-name)))
+    (alexandria:remove-from-plistf params :test-name)
+    
     (cond
       ((uiop:getenv env-var)
        (plan 0)
@@ -25,7 +28,9 @@
        (let ((*db* (apply #'connect driver-name params))
              (*driver-name* driver-name))
          (unwind-protect
-              (run-test-package :dbi.test)
+              (if test-name
+                  (run-test test-name)
+                  (run-test-package :dbi.test))
            (disconnect *db*)))))))
 
 
