@@ -80,3 +80,14 @@ support transactions.")
      (format stream
              "`~A' isn't supported on the current driver."
              (slot-value condition 'method-name)))))
+
+@export
+(define-condition <dbi-already-commited-error> (<dbi-error>) ()
+  (:documentation "This exception occur when there is a programming error and
+you are trying to commit a transaction twice."))
+
+@export
+(define-condition <dbi-already-rolled-back-error> (<dbi-error>) ()
+  (:documentation "This exception occur when there is a programming error and
+you are trying to rollback a transaction twice."))
+
