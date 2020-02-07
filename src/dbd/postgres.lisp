@@ -19,7 +19,8 @@
                 :crash-shutdown
                 :cannot-connect-now)
   (:import-from :trivial-garbage
-                :finalize))
+                :finalize
+                :cancel-finalization))
 (in-package :dbd.postgres)
 
 (cl-syntax:use-syntax :annot)
@@ -63,7 +64,9 @@
 
 @export
 (defclass <dbd-postgres-query> (<dbi-query>)
-  ((name :initarg :name)))
+  ((name :initarg :name)
+   (freedp :initform nil
+           :accessor query-freed-p)))
 
 (defmacro with-handling-pg-errors (&body body)
   `(handler-case (progn ,@body)
@@ -79,7 +82,8 @@
 (defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
   ;; Deallocate used prepared statements here,
   ;; because GC finalizer may run during processing another query and fail.
-  (loop for prepared = (pop (slot-value conn '%deallocation-queue))
+  (loop repeat 10 ;; To prevent from freeing many query objects at once
+        for prepared = (pop (slot-value conn '%deallocation-queue))
         while prepared
         do (unprepare-query (connection-handle conn) prepared))
   (let ((name (symbol-name (gensym "PREPARED-STATEMENT"))))
@@ -103,7 +107,8 @@
                                    :prepared (prepare-query conn-handle name sql))))
         (finalize query
                   (lambda ()
-                    (when (database-open-p conn-handle)
+                    (when (and (database-open-p conn-handle)
+                               (not (query-freed-p query)))
                       (push name (slot-value conn '%deallocation-queue)))))))))
 
 (defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
@@ -177,6 +182,12 @@
            cl-postgres-error:cannot-connect-now) ()
         nil)
       (error () nil))))
+
+(defmethod free-query-resources ((query <dbd-postgres-query>))
+  (unless (query-freed-p query)
+    (unprepare-query (connection-handle (query-connection query)) (slot-value query 'name))
+    (setf (query-freed-p query) t)
+    (cancel-finalization query)))
 
 (defmethod row-count ((conn <dbd-postgres-connection>))
   (slot-value conn '%modified-row-count))
