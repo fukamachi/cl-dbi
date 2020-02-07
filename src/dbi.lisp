@@ -3,71 +3,75 @@
   (:use :cl
         :dbi.error)
   (:nicknames :cl-dbi)
-  (:import-from :dbi.driver
-                :list-all-drivers
-                :find-driver
-                :connection-driver-type
-                :connection-database-name
-                :make-connection
-                :disconnect
-                :prepare
-                :execute
-                :fetch
-                :fetch-all
-                :do-sql
-                :begin-transaction
-                :commit
-                :rollback
-                :savepoint
-                :rollback-savepoint
-                :release-savepoint
-                :*in-transaction*
-                :*current-savepoint*
-                :ping
-                :row-count
-                :transaction-done-condition
-                :free-query-resources)
-  (:import-from :dbi.logger
-                :*sql-execution-hooks*
-                :simple-sql-logger)
-  (:import-from :bordeaux-threads
-                :current-thread
-                :thread-alive-p)
-  (:export :list-all-drivers
-           :find-driver
-           :connection-driver-type
-           :connection-database-name
-           :disconnect
-           :prepare
-           :execute
-           :fetch
-           :fetch-all
-           :do-sql
-           :begin-transaction
-           :commit
-           :rollback
-           :savepoint
-           :rollback-savepoint
-           :release-savepoint
-           :ping
-           :row-count
-           :free-query-resources
+  (:import-from #:dbi.driver
+                #:list-all-drivers
+                #:find-driver
+                #:connection-driver-type
+                #:connection-database-name
+                #:make-connection
+                #:disconnect
+                #:prepare
+                #:execute
+                #:fetch
+                #:fetch-all
+                #:do-sql
+                #:begin-transaction
+                #:in-transaction
+                #:commit
+                #:rollback
+                #:savepoint
+                #:rollback-savepoint
+                #:release-savepoint
+                #:with-savepoint
+                #:with-transaction
+                #:ping
+                #:row-count
+                #:transaction-done-condition
+                #:free-query-resources)
+  (:import-from #:dbi.logger
+                #:*sql-execution-hooks*
+                #:simple-sql-logger)
+  (:import-from #:bordeaux-threads
+                #:current-thread
+                #:thread-alive-p)
+  (:export #:list-all-drivers
+           #:find-driver
+           #:connection-driver-type
+           #:connection-database-name
+           #:disconnect
+           #:prepare
+           #:execute
+           #:fetch
+           #:fetch-all
+           #:do-sql
+           #:begin-transaction
+           #:in-transaction
+           #:commit
+           #:rollback
+           #:savepoint
+           #:rollback-savepoint
+           #:release-savepoint
+           #:with-savepoint
+           #:with-transaction
+           #:ping
+           #:row-count
+           #:free-query-resources
 
-           :<dbi-error>
-           :<dbi-warning>
-           :<dbi-interface-error>
-           :<dbi-unimplemented-error>
-           :<dbi-database-error>
-           :<dbi-data-error>
-           :<dbi-operational-error>
-           :<dbi-integrity-error>
-           :<dbi-internal-error>
-           :<dbi-programming-error>
-           :<dbi-notsupported-error>
+           #:<dbi-error>
+           #:<dbi-warning>
+           #:<dbi-interface-error>
+           #:<dbi-unimplemented-error>
+           #:<dbi-database-error>
+           #:<dbi-data-error>
+           #:<dbi-operational-error>
+           #:<dbi-integrity-error>
+           #:<dbi-internal-error>
+           #:<dbi-programming-error>
+           #:<dbi-notsupported-error>
 
            ;; logger
-           :*sql-execution-hooks*
-           :simple-sql-logger))
+           #:*sql-execution-hooks*
+           #:simple-sql-logger))
 (in-package :dbi)
 
 (cl-syntax:use-syntax :annot)
@@ -160,60 +164,6 @@
     #-quicklisp
     (asdf:load-system driver-system :verbose nil)))
 
-(defun generate-random-savepoint ()
-  (format nil "savepoint_~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
-
-@export
-(defmacro with-savepoint (conn &body body)
-  (let ((done (gensym "SAVEPOINT-DONE"))
-        (ok (gensym "SAVEPOINT-OK"))
-        (conn-var (gensym "CONN-VAR")))
-    `(let* (,done
-            ,ok
-            (,conn-var ,conn)
-            (*current-savepoint* (generate-random-savepoint)))
-       (savepoint ,conn-var *current-savepoint*)
-       (unwind-protect
-            (handler-case (multiple-value-prog1
-                              (progn ,@body)
-                            (setf ,ok t))
-              (transaction-done-condition () (setf ,done t)))
-         (unless ,done
-           (handler-case
-               (if ,ok
-                   (release-savepoint ,conn-var)
-                   (rollback-savepoint ,conn-var))
-             (transaction-done-condition ())))))))
-
-(defmacro %with-transaction (conn &body body)
-  (let ((done (gensym "TRANSACTION-DONE"))
-        (ok (gensym "TRANSACTION-OK"))
-        (conn-var (gensym "CONN-VAR")))
-    `(let* (,done
-            ,ok
-            (,conn-var ,conn)
-            (*in-transaction* (cons ,conn-var *in-transaction*)))
-       (begin-transaction ,conn-var)
-       (unwind-protect
-            (handler-case (multiple-value-prog1
-                              (progn ,@body)
-                            (setf ,ok t))
-              (transaction-done-condition () (setf ,done t)))
-         (unless ,done
-           (handler-case
-               (if ,ok
-                   (commit ,conn-var)
-                   (rollback ,conn-var))
-             (transaction-done-condition ())))))))
-
-@export
-(defmacro with-transaction (conn &body body)
-  "Start a transaction and commit at the end of this block. If the evaluation `body` is interrupted, the transaction is rolled back automatically."
-  (let ((conn-var (gensym "CONN-VAR")))
-    `(let ((,conn-var ,conn))
-       (if (find ,conn-var *in-transaction* :test #'eq)
-           (with-savepoint ,conn-var ,@body)
-           (%with-transaction ,conn-var ,@body)))))
 
 @export
 (defmacro with-connection ((conn-sym &rest rest) &body body)
