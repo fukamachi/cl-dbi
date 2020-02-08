@@ -1,6 +1,6 @@
 # CL-DBI - Database independent interface for Common Lisp
 
-[![Build Status](https://travis-ci.org/fukamachi/cl-dbi.svg?branch=master)](https://travis-ci.org/fukamachi/cl-dbi)
+[![Build Status](https://github.com/fukamachi/cl-dbi/workflows/CI/badge.svg)](https://github.com/fukamachi/cl-dbi/actions?query=workflow%3ACI)
 
 ## Usage
 
