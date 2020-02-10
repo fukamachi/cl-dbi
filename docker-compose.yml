@@ -6,6 +6,8 @@ services:
       dockerfile: docker/Dockerfile
       context: .
       target: base
+      args:
+        - LISP=${LISP}
     restart: "no"
     volumes:
       - ./:/app/
@@ -13,7 +15,6 @@ services:
       - postgres
       - mysql
     environment:
-      LISP: ${LISP}
       # SKIP_MYSQL: 1
       # SKIP_POSTGRES: 1
       # SKIP_SQLITE3: 1
@@ -36,6 +37,7 @@ services:
   mysql:
     container_name: cl-dbi-mysql
     image: "mysql:8"
+    command: --default-authentication-plugin=mysql_native_password
     restart: always
     environment:
       MYSQL_ROOT_PASSWORD: cl-dbi

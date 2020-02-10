@@ -196,11 +196,11 @@ and run unittests agains them:
 
 * Then in Lisp repl load the unittests:
 
-      (ql:quickload :dbi-test)
+      (ql:quickload :dbi/test)
       ;; Turn off colors if you are in the Emacs
-      (setf prove:*enable-colors* nil)
+      (setf rove:*enable-colors* nil)
       ;; Set this to debug failed test
-      (setf prove:*debug-on-error* t)
+      (setf rove:*debug-on-error* t)
 
 * And start driver's unittests:
 
@@ -228,14 +228,14 @@ and run unittests agains them:
                                  :password "cl-dbi")
 
   Also, you can run a single test like this:
-  
+
       (dbi.test:run-driver-tests :mysql
                                  :database-name "cl-dbi"
                                  :host "127.0.0.1"
                                  :port 3306
                                  :username "root"
                                  :password "cl-dbi"
-                                 :test-name '|select-after-commit|)
+                                 :test-name 'select-after-commit)
 
 ## Author
 

@@ -1,8 +1,8 @@
-(in-package :cl-user)
-(defpackage dbd-sqlite3-test
-  (:use :cl
-        :cl-test-more
-        :dbi.test))
-(in-package :dbd-sqlite3-test)
+(defpackage #:dbd-sqlite3-test
+  (:use #:cl
+        #:dbi.test
+        #:rove))
+(in-package #:dbd-sqlite3-test)
 
-(dbi.test:run-driver-tests :sqlite3 :database-name ":memory:")
+(deftest sqlite3-tests
+  (dbi.test:run-driver-tests :sqlite3 :database-name ":memory:"))
