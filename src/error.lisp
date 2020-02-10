@@ -1,6 +1,5 @@
-(in-package :cl-user)
-(defpackage dbi.error
-  (:use :cl)
+(defpackage #:dbi.error
+  (:use #:cl)
   (:export #:<dbi-error>
            #:<dbi-warning>
            #:<dbi-interface-error>
@@ -14,7 +13,7 @@
            #:<dbi-notsupported-error>
            #:<dbi-already-commited-error>
            #:<dbi-already-rolled-back-error>))
-(in-package :dbi.error)
+(in-package #:dbi.error)
 
 (define-condition <dbi-error> (simple-error) ()
   (:documentation "Base class of all other error exceptions. Use this to catch all DBI

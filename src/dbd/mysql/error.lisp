@@ -1,20 +1,19 @@
-(in-package :cl-user)
-(defpackage dbd.mysql.error
-  (:use :cl)
-  (:import-from :dbi.error
-                :<dbi-programming-error>
-                :<dbi-database-error>)
-  (:import-from :dbi.driver
-                :connection-handle)
-  (:import-from :cl-mysql-system
-                :mysql-error
-                :mysql-error-errno
-                :mysql-error-message
-                :release
-                :connections
-                :in-use)
+(defpackage #:dbd.mysql.error
+  (:use #:cl)
+  (:import-from #:dbi.error
+                #:<dbi-programming-error>
+                #:<dbi-database-error>)
+  (:import-from #:dbi.driver
+                #:connection-handle)
+  (:import-from #:cl-mysql-system
+                #:mysql-error
+                #:mysql-error-errno
+                #:mysql-error-message
+                #:release
+                #:connections
+                #:in-use)
   (:export #:with-error-handler))
-(in-package :dbd.mysql.error)
+(in-package #:dbd.mysql.error)
 
 (defparameter *mysql-programming-error-code*
   (list 1044 ;; ER_DBACCESS_DENIED_ERROR

@@ -1,27 +1,26 @@
-(in-package :cl-user)
-(defpackage dbd.mysql
-  (:use :cl
-        :dbi.driver
-        :dbi.logger
-        :cl-mysql)
-  (:shadowing-import-from :dbi.driver
-                          :disconnect
-                          :ping)
-  (:import-from :dbd.mysql.error
-                :with-error-handler)
-  (:import-from :cl-mysql-system
-                :mysql-error
-                :mysql-error-errno
-                :connect-to-server
-                :return-or-close
-                :owner-pool
-                :+server-gone-error+
-                :+server-lost+)
+(defpackage #:dbd.mysql
+  (:use #:cl
+        #:dbi.driver
+        #:dbi.logger
+        #:cl-mysql)
+  (:shadowing-import-from #:dbi.driver
+                          #:disconnect
+                          #:ping)
+  (:import-from #:dbd.mysql.error
+                #:with-error-handler)
+  (:import-from #:cl-mysql-system
+                #:mysql-error
+                #:mysql-error-errno
+                #:connect-to-server
+                #:return-or-close
+                #:owner-pool
+                #:+server-gone-error+
+                #:+server-lost+)
   (:export #:<dbd-mysql>
            #:<dbd-mysql-connection>
            #:<dbd-mysql-query>
            #:mysql-use-store))
-(in-package :dbd.mysql)
+(in-package #:dbd.mysql)
 
 (defclass <dbd-mysql> (<dbi-driver>) ())
 

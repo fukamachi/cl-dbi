@@ -1,22 +1,21 @@
-(in-package :cl-user)
-(defpackage dbd.sqlite3
-  (:use :cl
-        :dbi.driver
-        :dbi.logger
-        :dbi.error
-        :sqlite)
+(defpackage #:dbd.sqlite3
+  (:use #:cl
+        #:dbi.driver
+        #:dbi.logger
+        #:dbi.error
+        #:sqlite)
   (:shadowing-import-from #:dbi.driver
                           #:disconnect
                           #:with-transaction)
-  (:import-from :trivial-garbage
-                :finalize)
-  (:import-from :uiop/filesystem
-                :file-exists-p)
+  (:import-from #:trivial-garbage
+                #:finalize)
+  (:import-from #:uiop/filesystem
+                #:file-exists-p)
   (:export #:<dbd-sqlite3>
            #:<dbd-sqlite3-connection>
            #:<dbd-sqlite3-query>
            #:sqlite3-use-store))
-(in-package :dbd.sqlite3)
+(in-package #:dbd.sqlite3)
 
 (defclass <dbd-sqlite3> (<dbi-driver>) ())
 

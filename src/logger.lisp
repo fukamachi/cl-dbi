@@ -1,10 +1,10 @@
-(defpackage dbi.logger
-  (:use :cl)
-  (:export :*sql-execution-hooks*
-           :simple-sql-logger
-           :sql-log
-           :with-took-ms))
-(in-package :dbi.logger)
+(defpackage #:dbi.logger
+  (:use #:cl)
+  (:export #:*sql-execution-hooks*
+           #:simple-sql-logger
+           #:sql-log
+           #:with-took-ms))
+(in-package #:dbi.logger)
 
 (defvar *sql-execution-hooks* '())
 

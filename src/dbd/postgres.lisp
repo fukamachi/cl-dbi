@@ -1,30 +1,29 @@
-(in-package :cl-user)
-(defpackage dbd.postgres
-  (:use :cl
-        :dbi.driver
-        :dbi.logger
-        :dbi.error
-        :cl-postgres)
-  (:import-from :cl-postgres
-                :connection-socket
-                :send-parse
-                :set-sql-datetime-readers)
-  (:import-from :cl-postgres-error
-                :database-error
-                :syntax-error-or-access-violation
-                :database-error-message
-                :database-error-code
+(defpackage #:dbd.postgres
+  (:use #:cl
+        #:dbi.driver
+        #:dbi.logger
+        #:dbi.error
+        #:cl-postgres)
+  (:import-from #:cl-postgres
+                #:connection-socket
+                #:send-parse
+                #:set-sql-datetime-readers)
+  (:import-from #:cl-postgres-error
+                #:database-error
+                #:syntax-error-or-access-violation
+                #:database-error-message
+                #:database-error-code
 
-                :admin-shutdown
-                :crash-shutdown
-                :cannot-connect-now)
-  (:import-from :trivial-garbage
-                :finalize
-                :cancel-finalization)
+                #:admin-shutdown
+                #:crash-shutdown
+                #:cannot-connect-now)
+  (:import-from #:trivial-garbage
+                #:finalize
+                #:cancel-finalization)
   (:export #:<dbd-postgres>
            #:<dbd-postgres-connection>
            #:<dbd-postgres-query>))
-(in-package :dbd.postgres)
+(in-package #:dbd.postgres)
 
 (defclass <dbd-postgres> (<dbi-driver>) ())
 

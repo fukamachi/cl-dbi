@@ -1,5 +1,4 @@
-(in-package :cl-user)
-(defpackage dbi.driver
+(defpackage #:dbi.driver
   (:use #:cl
         #:split-sequence)
   (:import-from #:dbi.error
@@ -44,7 +43,7 @@
            #:row-count
            #:free-query-resources
            #:escape-sql))
-(in-package :dbi.driver)
+(in-package #:dbi.driver)
 
 (defclass <dbi-driver> () ()
   (:documentation "Base class for DB driver."))

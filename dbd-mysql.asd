@@ -1,24 +1,8 @@
-#|
-  This file is a part of CL-DBI project.
-  Copyright (c) 2011 Eitaro Fukamachi (e.arrows@gmail.com)
-|#
-
-#|
-  Database driver for MySQL.
-
-  Author: Eitaro Fukamachi (e.arrows@gmail.com)
-|#
-
-(in-package :cl-user)
-(defpackage dbd-mysql-asd
-  (:use :cl :asdf))
-(in-package :dbd-mysql-asd)
-
-(defsystem dbd-mysql
+(defsystem "dbd-mysql"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
-  :depends-on (:dbi
-               :cl-mysql)
+  :depends-on ("dbi"
+               "cl-mysql")
   :components ((:module "src/dbd"
                 :components
                 ((:file "mysql" :depends-on ("mysql/error"))

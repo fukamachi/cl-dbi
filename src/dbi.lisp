@@ -1,8 +1,7 @@
-(in-package :cl-user)
-(defpackage dbi
-  (:use :cl
-        :dbi.error)
-  (:nicknames :cl-dbi)
+(defpackage #:dbi
+  (:use #:cl
+        #:dbi.error)
+  (:nicknames #:cl-dbi)
   (:import-from #:dbi.driver
                 #:list-all-drivers
                 #:find-driver
@@ -75,7 +74,7 @@
   (:export #:connect
            #:connect-cached
            #:with-connection))
-(in-package :dbi)
+(in-package #:dbi)
 
 (defun connect (driver-name &rest params &key database-name &allow-other-keys)
   "Open a connection to the database which corresponds to `driver-name`."
