@@ -19,10 +19,7 @@
   :license "LLGPL"
   :depends-on (:dbi
                :sqlite
-               :trivial-garbage
-               :cl-syntax
-               :cl-syntax-annot
-               :uiop)
+               :trivial-garbage)
   :components ((:module "src/dbd"
                 :components
                 ((:file "sqlite3"))))

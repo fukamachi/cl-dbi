@@ -20,15 +20,14 @@
                 :cannot-connect-now)
   (:import-from :trivial-garbage
                 :finalize
-                :cancel-finalization))
+                :cancel-finalization)
+  (:export #:<dbd-postgres>
+           #:<dbd-postgres-connection>
+           #:<dbd-postgres-query>))
 (in-package :dbd.postgres)
 
-(cl-syntax:use-syntax :annot)
-
-@export
 (defclass <dbd-postgres> (<dbi-driver>) ())
 
-@export
 (defclass <dbd-postgres-connection> (<dbi-connection>)
   ((%modified-row-count :type (or null fixnum)
                         :initform nil)
@@ -62,7 +61,6 @@
                             port
                             use-ssl)))
 
-@export
 (defclass <dbd-postgres-query> (<dbi-query>)
   ((name :initarg :name)
    (freedp :initform nil

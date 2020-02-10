@@ -71,12 +71,12 @@
 
            ;; logger
            #:*sql-execution-hooks*
-           #:simple-sql-logger))
+           #:simple-sql-logger)
+  (:export #:connect
+           #:connect-cached
+           #:with-connection))
 (in-package :dbi)
 
-(cl-syntax:use-syntax :annot)
-
-@export
 (defun connect (driver-name &rest params &key database-name &allow-other-keys)
   "Open a connection to the database which corresponds to `driver-name`."
   (declare (ignore database-name))
@@ -111,7 +111,6 @@
       (setf (gethash (bt:current-thread) *threads-connection-pool*)
             (make-connection-pool))))
 
-@export
 (defun connect-cached (&rest connect-args)
   (let* ((pool (get-connection-pool))
          (conn (gethash connect-args pool)))
@@ -165,7 +164,6 @@
     (asdf:load-system driver-system :verbose nil)))
 
 
-@export
 (defmacro with-connection ((conn-sym &rest rest) &body body)
   `(let ((,conn-sym (connect ,@rest)))
      (unwind-protect

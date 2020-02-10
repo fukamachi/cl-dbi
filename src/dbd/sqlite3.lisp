@@ -4,23 +4,22 @@
         :dbi.driver
         :dbi.logger
         :dbi.error
-        :sqlite
-        :annot.class)
+        :sqlite)
   (:shadowing-import-from #:dbi.driver
                           #:disconnect
                           #:with-transaction)
   (:import-from :trivial-garbage
                 :finalize)
   (:import-from :uiop/filesystem
-                :file-exists-p))
+                :file-exists-p)
+  (:export #:<dbd-sqlite3>
+           #:<dbd-sqlite3-connection>
+           #:<dbd-sqlite3-query>
+           #:sqlite3-use-store))
 (in-package :dbd.sqlite3)
 
-(cl-syntax:use-syntax :annot)
-
-@export
 (defclass <dbd-sqlite3> (<dbi-driver>) ())
 
-@export
 (defclass <dbd-sqlite3-connection> (<dbi-connection>) ())
 
 (defmethod make-connection ((driver <dbd-sqlite3>) &key database-name busy-timeout)
@@ -28,8 +27,6 @@
      :database-name database-name
      :handle (connect database-name :busy-timeout busy-timeout)))
 
-@export
-@export-accessors
 (defclass <dbd-sqlite3-query> (<dbi-query>)
   ((store :initarg :store
           :initform t
@@ -94,13 +91,13 @@
       (values row-count))))
 
 (defmethod fetch-using-connection ((conn <dbd-sqlite3-connection>) (query <dbd-sqlite3-query>))
-  @ignore conn
+  (declare (ignore conn))
   (if (slot-boundp query 'dbi.driver::results)
       (pop (query-results query))
       (let ((prepared (query-prepared query)))
         (when (handler-case (step-statement prepared)
                 (sqlite-error (e)
-                  @ignore e
+                  (declare (ignore e))
                   (finalize-statement prepared)
                   nil))
           (loop for column in (statement-column-names prepared)

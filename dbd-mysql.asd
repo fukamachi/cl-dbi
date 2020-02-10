@@ -18,9 +18,7 @@
   :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on (:dbi
-               :cl-mysql
-               :cl-syntax
-               :cl-syntax-annot)
+               :cl-mysql)
   :components ((:module "src/dbd"
                 :components
                 ((:file "mysql" :depends-on ("mysql/error"))

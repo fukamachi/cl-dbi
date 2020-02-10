@@ -2,9 +2,7 @@
   :version "0.9.2"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
-  :depends-on ("cl-syntax"
-               "cl-syntax-annot"
-               "split-sequence"
+  :depends-on ("split-sequence"
                "closer-mop"
                "bordeaux-threads")
   :components ((:module "src"
@@ -24,8 +22,6 @@
                "dbd-postgres"
                "rove"
                "closer-mop"
-               "cl-syntax"
-               "cl-syntax-annot"
                "alexandria"
                "trivial-types")
   :components ((:module "tests"

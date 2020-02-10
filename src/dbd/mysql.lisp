@@ -3,8 +3,7 @@
   (:use :cl
         :dbi.driver
         :dbi.logger
-        :cl-mysql
-        :annot.class)
+        :cl-mysql)
   (:shadowing-import-from :dbi.driver
                           :disconnect
                           :ping)
@@ -17,15 +16,15 @@
                 :return-or-close
                 :owner-pool
                 :+server-gone-error+
-                :+server-lost+))
+                :+server-lost+)
+  (:export #:<dbd-mysql>
+           #:<dbd-mysql-connection>
+           #:<dbd-mysql-query>
+           #:mysql-use-store))
 (in-package :dbd.mysql)
 
-(cl-syntax:use-syntax :annot)
-
-@export
 (defclass <dbd-mysql> (<dbi-driver>) ())
 
-@export
 (defclass <dbd-mysql-connection> (<dbi-connection>) ())
 
 (defmethod make-connection ((driver <dbd-mysql>) &key host database-name username password port socket client-flag)
@@ -39,8 +38,6 @@
                       :socket socket
                       :client-flag client-flag)))
 
-@export
-@export-accessors
 (defclass <dbd-mysql-query> (<dbi-query>)
   ((store :initarg :store :initform T
           :accessor mysql-use-store)))
