@@ -12,10 +12,9 @@
                 :mysql-error-message
                 :release
                 :connections
-                :in-use))
+                :in-use)
+  (:export #:with-error-handler))
 (in-package :dbd.mysql.error)
-
-(cl-syntax:use-syntax :annot)
 
 (defparameter *mysql-programming-error-code*
   (list 1044 ;; ER_DBACCESS_DENIED_ERROR
@@ -105,7 +104,6 @@
         1286 ;; ER_UNKNOWN_STORAGE_ENGINE
         ))
 
-@export
 (defmacro with-error-handler (conn &body body)
   `(handler-case (progn ,@body)
      (mysql-error (e)
