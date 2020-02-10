@@ -1,14 +1,11 @@
-(in-package :cl-user)
-(defpackage dbi-test.driver
-  (:use :cl
-        :cl-test-more
-        :dbi
-        :dbi.driver))
-(in-package :dbi-test.driver)
+(defpackage #:dbi-test.driver
+  (:use #:cl
+        #:rove
+        #:dbi
+        #:dbi.driver))
+(in-package #:dbi-test.driver)
 
-(plan 6)
-
-(is (find-driver :imaginedb) nil :test #'eq
+(ng (find-driver :imaginedb)
     "find-driver: which doesn't exist")
 
 (defclass <dbd-imaginedb> (<dbi-driver>) () )
@@ -16,8 +13,7 @@
   (declare (ignore params))
   (make-instance '<dbi-connection>))
 
-(is (c2mop:subclassp (find-driver :imaginedb) '<dbi-driver>)
-    t
+(ok (c2mop:subclassp (find-driver :imaginedb) '<dbi-driver>)
     "find-driver: which exists")
 
 (ok (find (find-class '<dbd-imaginedb>) (list-all-drivers))
@@ -25,20 +21,17 @@
 
 (defparameter *connection* (connect :imaginedb))
 
-(is-type *connection* '<dbi-connection>
-         "connect")
+(ok (typep *connection* '<dbi-connection>)
+    "connect")
 
 (defparameter *query*
               (prepare *connection* "SELECT * FROM kyoto WHERE type = ?"))
 
-(is-type *query*
-         '<dbi-query>
-         "prepare")
+(ok (typep *query* '<dbi-query>)
+    "prepare")
 
-(is (funcall (slot-value *query* 'dbi.driver::prepared) "cafe")
-    "SELECT * FROM kyoto WHERE type = 'cafe'"
+(ok (equal (funcall (slot-value *query* 'dbi.driver::prepared) "cafe")
+           "SELECT * FROM kyoto WHERE type = 'cafe'")
     "prepare-sql")
 
 (c2mop:remove-direct-subclass (find-class '<dbi-driver>) (find-class '<dbd-imaginedb>))
-
-(finalize)

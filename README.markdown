@@ -196,11 +196,11 @@ and run unittests agains them:
 
 * Then in Lisp repl load the unittests:
 
-      (ql:quickload :dbi-test)
+      (ql:quickload :dbi/test)
       ;; Turn off colors if you are in the Emacs
-      (setf prove:*enable-colors* nil)
+      (setf rove:*enable-colors* nil)
       ;; Set this to debug failed test
-      (setf prove:*debug-on-error* t)
+      (setf rove:*debug-on-error* t)
 
 * And start driver's unittests:
 

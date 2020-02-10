@@ -15,4 +15,4 @@ done
 
 ros install "$LISP"
 ros use "$LISP"
-/root/.roswell/bin/run-prove dbi-test.asd
+/root/.roswell/bin/rove dbi.asd

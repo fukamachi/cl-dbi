@@ -1,43 +1,38 @@
-(in-package :cl-user)
-(defpackage dbi.test
-  (:use :cl
-        :dbi
-        :dbi.driver
-        :cl-test-more
-        :trivial-types))
-(in-package :dbi.test)
-
-(cl-syntax:use-syntax :annot)
+(defpackage #:dbi.test
+  (:use #:cl
+        #:dbi
+        #:dbi.driver
+        #:rove
+        #:trivial-types)
+  (:import-from #:alexandria
+                #:remove-from-plistf)
+  (:export #:run-driver-tests))
+(in-package #:dbi.test)
 
 (defparameter *db* nil)
 (defparameter *driver-name* nil)
 
-@export
 (defun run-driver-tests (driver-name &rest params)
-  (let ((*package* (find-package :dbi.test))
+  (let ((*package* (find-package '#:dbi.test))
         (env-var (format nil "SKIP_~A" driver-name))
         (test-name (getf params :test-name)))
-    (alexandria:remove-from-plistf params :test-name)
-    
+    (remove-from-plistf params :test-name)
+
     (cond
       ((uiop:getenv env-var)
-       (plan 0)
-       (finalize))
+       (skip (format nil "Skipped ~A tests" driver-name)))
       (t
-       (plan 12)
        (let ((*db* (apply #'connect driver-name params))
              (*driver-name* driver-name))
          (unwind-protect
               (if test-name
                   (run-test test-name)
-                  (run-test-package :dbi.test))
+                  (run-suite :dbi.test))
            (disconnect *db*)))))))
-
 
 (defun turn-off-autocommit ()
   (when (eql *driver-name* :mysql)
     (do-sql *db* "SET autocommit=0")))
-
 
 (defmacro with-collected-queries (&body body)
   "Collects all sql queries produced by the body.
@@ -54,7 +49,6 @@
                 (reverse ,queries-var)))
          ,@body))))
 
-
 ;; Don't know. Why dbi:fetch-all does not work this way?
 (defun execute-and-fetch-all (conn sql &rest params)
   (fetch-all
@@ -62,70 +56,69 @@
           (prepare conn sql)
           params)))
 
+(deftest connect
+  (ok (typep *db* '<dbi-connection>)))
 
-(deftest |connect|
-  (is-type *db* '<dbi-connection>))
+(deftest do-sql
+  (ok (eql (do-sql *db* "DROP TABLE IF EXISTS person") 0))
+  (ok (eql (do-sql *db* "CREATE TABLE person (id INTEGER PRIMARY KEY, name VARCHAR(24) NOT NULL)")
+           0))
+  (ok (eql (do-sql *db* "INSERT INTO person (id, name) VALUES (1, 'fukamachi')")
+           1))
+  (ok (eql (do-sql *db* "INSERT INTO person (id, name) VALUES (2, 'matsuyama')")
+           1)))
 
-(deftest |do-sql|
-  (is (do-sql *db* "DROP TABLE IF EXISTS person") 0)
-  (is (do-sql *db* "CREATE TABLE person (id INTEGER PRIMARY KEY, name VARCHAR(24) NOT NULL)")
-      0)
-  (is (do-sql *db* "INSERT INTO person (id, name) VALUES (1, 'fukamachi')")
-      1)
-  (is (do-sql *db* "INSERT INTO person (id, name) VALUES (2, 'matsuyama')")
-      1))
-
-(deftest |prepare, execute & fetch|
+(deftest prepare-execute-fetch
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person"))
-    (is-type query '<dbi-query>)
+    (ok (typep query '<dbi-query>))
     (setf result (execute query))
-    (is (fetch-all result)
-        '((:|id| 1 :|name| "fukamachi") (:|id| 2 :|name| "matsuyama")))
+    (ok (equal (fetch-all result)
+               '((:|id| 1 :|name| "fukamachi") (:|id| 2 :|name| "matsuyama"))))
     (setf result (execute query))
-    (is-type result '<dbi-query>)
+    (ok (typep result '<dbi-query>))
     (let ((result (fetch result)))
-      (is-type result '(non-nil property-list))
-      (is (getf result :|name|) "fukamachi"))
+      (ok (typep result '(non-nil property-list)))
+      (ok (equal (getf result :|name|) "fukamachi")))
     (let ((result (fetch result)))
-      (is-type result '(non-nil property-list))
-      (is (getf result :|name|) "matsuyama"))
-    (is (fetch result) nil))
+      (ok (typep result '(non-nil property-list)))
+      (ok (equal (getf result :|name|) "matsuyama")))
+    (ok (null (fetch result))))
   (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
          (result (execute query nil)))
-    (is (fetch result) nil))
+    (ok (null (fetch result))))
 
-  (is-type (execute (prepare *db* "INSERT INTO person (id, name) VALUES (3, 'snmsts')"))
-           '<dbi-query>)
-  (is (row-count *db*) 1)
+  (ok (typep (execute (prepare *db* "INSERT INTO person (id, name) VALUES (3, 'snmsts')"))
+             '<dbi-query>))
+  (ok (eql (row-count *db*) 1))
   (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
          (result (execute query "snmsts")))
-    (is (getf (fetch result) :|name|) "snmsts")))
+    (ok (equal (getf (fetch result) :|name|) "snmsts"))))
 
-(deftest |place holder|
+(deftest place-holder
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person WHERE name = ?"))
-    (is-type query '<dbi-query>)
+    (ok (typep query '<dbi-query>))
     (setf result (execute query "matsuyama"))
-    (is-type result '<dbi-query>)
-    (is-type (fetch result) '(non-nil property-list))
-    (is (fetch result) nil)))
+    (ok (typep result '<dbi-query>))
+    (ok (typep (fetch result) '(non-nil property-list)))
+    (ok (null (fetch result)))))
 
-(deftest |with-transaction|
+(deftest with-transaction
   (turn-off-autocommit)
   (handler-case
       (progn
         (with-transaction *db*
           (do-sql *db* "INSERT INTO person (id, name) VALUES (4, 'meymao')"))
-        (is (fetch (execute (prepare *db* "SELECT * FROM person WHERE name = 'meymao'")))
-            '(:|id| 4 :|name| "meymao")))
+        (ok (equal (fetch (execute (prepare *db* "SELECT * FROM person WHERE name = 'meymao'")))
+                   '(:|id| 4 :|name| "meymao"))))
     (dbi.error:<dbi-notsupported-error> ()
-      (skip 1 "Not supported"))))
+      (skip "Not supported"))))
 
-(deftest |with-nested-transaction|
+(deftest with-nested-transaction
   "Nested transactions should be transformed into savepoints"
   (turn-off-autocommit)
-  
+
   (handler-case
       (flet ((get-row-number ()
                (getf (first
@@ -149,61 +142,61 @@
                 "And now we have only one row"))))
 
     (dbi.error:<dbi-notsupported-error> ()
-      (skip 1 "Not supported"))))
+      (skip "Not supported"))))
 
-(deftest |duplicate-rollback|
+(deftest duplicate-rollback
   (turn-off-autocommit)
   (handler-case
       (with-transaction *db*
         (rollback *db*)
         ;; Second rollback should fail
-        (prove:is-error (rollback *db*)
-                        'dbi.error:<dbi-already-rolled-back-error>
-                        "Duplicate rollback should raise an error"))
+        (ok (signals (rollback *db*)
+                     'dbi.error:<dbi-already-rolled-back-error>)
+            "Duplicate rollback should raise an error"))
 
     (dbi.error:<dbi-notsupported-error> ()
-      (skip 1 "Not supported"))))
+      (skip "Not supported"))))
 
-(deftest |select-after-rollback|
+(deftest select-after-rollback
     (turn-off-autocommit)
   (handler-case
       (with-transaction *db*
         (rollback *db*)
         ;; Attempt to execute a SELECT after the manual rollback should fail
-        (prove:is-error (do-sql *db* "SELECT 1")
-                        'dbi.error:<dbi-already-rolled-back-error>
-                        "SQL statements should fail after the manual rollback"))
+        (ok (signals (do-sql *db* "SELECT 1")
+                     'dbi.error:<dbi-already-rolled-back-error>)
+            "SQL statements should fail after the manual rollback"))
 
     (dbi.error:<dbi-notsupported-error> ()
-      (skip 1 "Not supported"))))
+      (skip "Not supported"))))
 
-(deftest |select-after-commit|
+(deftest select-after-commit
   (turn-off-autocommit)
   (handler-case
       (with-transaction *db*
         (commit *db*)
         ;; Attempt to execute a SELECT after the manual commit should fail
-        (prove:is-error (do-sql *db* "SELECT 1")
-                        'dbi.error:<dbi-already-commited-error>
-                        "SQL statements should fail after the manual commit"))
+        (ok (signals (do-sql *db* "SELECT 1")
+                     'dbi.error:<dbi-already-commited-error>)
+            "SQL statements should fail after the manual commit"))
 
     (dbi.error:<dbi-notsupported-error> ()
-      (skip 1 "Not supported"))))
+      (skip "Not supported"))))
 
-(deftest |duplicate-commit|
+(deftest duplicate-commit
   (turn-off-autocommit)
   (handler-case
       (with-transaction *db*
         (commit *db*)
         ;; Second rollback should fail
-        (prove:is-error (commit *db*)
-                        'dbi.error:<dbi-already-commited-error>
-                        "Duplicate commit should raise an error"))
-    
-    (dbi.error:<dbi-notsupported-error> ()
-      (skip 1 "Not supported"))))
+        (ok (signals (commit *db*)
+                     'dbi.error:<dbi-already-commited-error>)
+            "Duplicate commit should raise an error"))
 
-(deftest |code-execution-after-manual-commit|
+    (dbi.error:<dbi-notsupported-error> ()
+      (skip "Not supported"))))
+
+(deftest code-execution-after-manual-commit
   (turn-off-autocommit)
   (handler-case
       (let (value)
@@ -214,13 +207,13 @@
             "Value should be set to foo even after the manual commit."))
 
     (dbi.error:<dbi-notsupported-error> ()
-      (skip 1 "Not supported"))))
+      (skip "Not supported"))))
 
-(deftest |statement error|
-  (is-type (handler-case (do-sql *db* "INSERT")
-             (error (e) e))
-           '<dbi-database-error>)
-  (is-type (handler-case (execute (prepare *db* "SELECT SELECT SELECT"))
-             (error (e) e))
-           '<dbi-database-error>)
+(deftest statement-error
+  (ok (typep (handler-case (do-sql *db* "INSERT")
+               (error (e) e))
+             '<dbi-database-error>))
+  (ok (typep (handler-case (execute (prepare *db* "SELECT SELECT SELECT"))
+               (error (e) e))
+             '<dbi-database-error>))
   (do-sql *db* "INSERT INTO person (id, name) VALUES (5, 'mizuna')"))
