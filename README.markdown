@@ -228,14 +228,14 @@ and run unittests agains them:
                                  :password "cl-dbi")
 
   Also, you can run a single test like this:
-  
+
       (dbi.test:run-driver-tests :mysql
                                  :database-name "cl-dbi"
                                  :host "127.0.0.1"
                                  :port 3306
                                  :username "root"
                                  :password "cl-dbi"
-                                 :test-name '|select-after-commit|)
+                                 :test-name 'select-after-commit)
 
 ## Author
 
