@@ -6,6 +6,8 @@ services:
       dockerfile: docker/Dockerfile
       context: .
       target: base
+      args:
+        - LISP=${LISP}
     restart: "no"
     volumes:
       - ./:/app/
@@ -13,7 +15,6 @@ services:
       - postgres
       - mysql
     environment:
-      LISP: ${LISP}
       # SKIP_MYSQL: 1
       # SKIP_POSTGRES: 1
       # SKIP_SQLITE3: 1
