@@ -14,4 +14,4 @@ WORKDIR /app
 
 ENV CL_SOURCE_REGISTRY "/app/"
 
-CMD /app/docker/entrypoint.sh
+ENTRYPOINT "/app/docker/entrypoint.sh"
