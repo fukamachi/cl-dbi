@@ -84,6 +84,7 @@ To load "cl-dbi":
 * connect-cached [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
+* prepare-cached [conn sql] =&gt; &lt;dbi-query&gt;
 * execute [query &amp; params] =&gt; something
 * fetch [result] =&gt; a row data as plist
 * fetch-all [result] =&gt; a list of all row data
@@ -105,6 +106,7 @@ To load "cl-dbi":
 * make-connection [driver params]
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
+* prepare-cached [conn sql] =&gt; &lt;dbi-query&gt;
 * fetch-using-connection [conn result] =&gt; a row data as plist
 * do-sql [conn sql &amp; params]
 * execute-using-connection =&gt; something

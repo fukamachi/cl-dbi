@@ -11,6 +11,7 @@
                 #:make-connection
                 #:disconnect
                 #:prepare
+                #:prepare-cached
                 #:execute
                 #:fetch
                 #:fetch-all
@@ -40,6 +41,7 @@
            #:connection-database-name
            #:disconnect
            #:prepare
+           #:prepare-cached
            #:execute
            #:fetch
            #:fetch-all

@@ -18,7 +18,7 @@
 
 (defun steal-cache-table (pool &optional (thread (bt:current-thread)))
   (or (gethash thread (cache-pool-hash pool))
-      (setf (gethash thread pool) (make-cache-table))))
+      (setf (gethash thread (cache-pool-hash pool)) (make-cache-table))))
 
 (defun get-object (pool key)
   (let ((cache (steal-cache-table pool)))

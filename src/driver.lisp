@@ -24,6 +24,7 @@
            #:query-results
            #:query-row-count
            #:prepare
+           #:prepare-cached
            #:execute
            #:fetch
            #:fetch-all
@@ -59,7 +60,9 @@
    (database-name :initarg :database-name
                   :accessor connection-database-name)
    (%handle :initarg :handle
-            :accessor connection-handle))
+            :accessor connection-handle)
+   (query-cache :initform (make-hash-table :test 'equal)
+                :accessor connection-query-cache))
   (:documentation "Base class for managing DB connection."))
 
 (defgeneric connection-driver-type (conn)
@@ -117,7 +120,10 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
    (row-count :type (or integer null)
               :initarg :row-count
               :initform nil
-              :accessor query-row-count))
+              :accessor query-row-count)
+   (cached :initarg :cached
+           :initform nil
+           :accessor query-cached-p))
   (:documentation "Class that represents a prepared DB query."))
 
 (defgeneric prepare (conn sql &key))
@@ -129,6 +135,14 @@ This method may be overrided by subclasses."
      :connection conn
      :sql sql
      :prepared (prepare-sql conn sql)))
+
+(defun prepare-cached (conn sql &key (query-class 'dbi-query))
+  "Same as PREPARE except reusing the created query object."
+  (or (gethash sql (connection-query-cache conn))
+      (setf (gethash sql (connection-query-cache conn))
+            (let ((query (prepare conn sql :query-class query-class)))
+              (setf (query-cached-p query) t)
+              query))))
 
 (defgeneric execute (query &rest params)
   (:documentation "Execute `query` with `params` and return the results.")
@@ -384,11 +398,15 @@ This method must be implemented in each drivers.")
            :method-name 'row-count)))
 
 (defgeneric free-query-resources (query)
-  (:documentation "Free  the resources (e.g.  foreign,  heap allocated
-memory) associated with  this query. This method  is specialized and
-effective (and should matches each 'prepare' function call) only for
-dbd-sqlite3-query. The default method currently has empty body.")
-  (:method (query))) ;; does nothing
+  (:documentation "Free the resources (e.g. foreign, heap allocated memory)
+associated with this query. The default method currently has empty body.")
+  (:method (query)) ;; do nothing
+  (:method :after (query)
+    (when (query-cached-p query)
+      (let ((cached-object (gethash (query-sql query)
+                                    (connection-query-cache (query-connection query)))))
+        (when (eq cached-object query)
+          (remhash (query-sql query) (connection-query-cache (query-connection query))))))))
 
 (defgeneric escape-sql (conn sql)
   (:documentation "Return escaped `sql`.
