@@ -70,6 +70,19 @@
            #:dbi-internal-error
            #:dbi-programming-error
            #:dbi-notsupported-error
+           #:<dbi-error>
+           #:<dbi-warning>
+           #:<dbi-interface-error>
+           #:<dbi-unimplemented-error>
+           #:<dbi-database-error>
+           #:<dbi-data-error>
+           #:<dbi-operational-error>
+           #:<dbi-integrity-error>
+           #:<dbi-internal-error>
+           #:<dbi-programming-error>
+           #:<dbi-notsupported-error>
+           #:<dbi-already-commited-error>
+           #:<dbi-already-rolled-back-error>
 
            ;; logger
            #:*sql-execution-hooks*
