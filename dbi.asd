@@ -2,14 +2,19 @@
   :version "0.9.4"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
+  :defsystem-depends-on ("bordeaux-threads")
   :depends-on ("split-sequence"
                "closer-mop"
                "bordeaux-threads")
   :components ((:module "src"
                 :depends-on ("src/utils")
                 :components
-                ((:file "dbi" :depends-on ("driver" "logger"))
+                ((:file "dbi" :depends-on ("driver" "cache" "logger"))
                  (:file "driver" :depends-on ("error"))
+                 (:module "cache"
+                  :components
+                  ((:file "thread" :if-feature :thread-support)
+                   (:file "single" :if-feature (:not :thread-support))))
                  (:file "logger")
                  (:file "error")))
                (:file "src/utils"))
