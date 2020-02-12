@@ -1,8 +1,8 @@
 (defpackage #:dbd.mysql.error
   (:use #:cl)
   (:import-from #:dbi.error
-                #:<dbi-programming-error>
-                #:<dbi-database-error>)
+                #:dbi-programming-error
+                #:dbi-database-error)
   (:import-from #:dbi.driver
                 #:connection-handle)
   (:import-from #:cl-mysql-system
@@ -110,8 +110,8 @@
             (error (if (member (mysql-error-errno e)
                                *mysql-programming-error-code*
                                :test #'eql)
-                       '<dbi-programming-error>
-                       '<dbi-database-error>)
+                       'dbi-programming-error
+                       'dbi-database-error)
                    :message (mysql-error-message e)
                    :error-code (mysql-error-errno e))
          ;; KLUDGE: I think this should be done in cl-mysql.

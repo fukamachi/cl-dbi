@@ -5,33 +5,60 @@
         #:dbi.driver))
 (in-package #:dbi-test.driver)
 
-(ng (find-driver :imaginedb)
-    "find-driver: which doesn't exist")
+(setup
+  (when (find-class 'dbd-imaginedb nil)
+    (setf (find-class 'dbd-imaginedb) nil))
 
-(defclass <dbd-imaginedb> (<dbi-driver>) () )
-(defmethod make-connection ((class <dbd-imaginedb>) &rest params)
-  (declare (ignore params))
-  (make-instance '<dbi-connection>))
+  (when (find-class '<dbd-imaginedb> nil)
+    (setf (find-class '<dbd-imaginedb>) nil)))
 
-(ok (c2mop:subclassp (find-driver :imaginedb) '<dbi-driver>)
-    "find-driver: which exists")
+(deftest unknown-driver
+  (ng (find-driver :imaginedb)
+      "find-driver: which doesn't exist"))
 
-(ok (find (find-class '<dbd-imaginedb>) (list-all-drivers))
-    "list-all-drivers")
+(deftest custom-driver
+  (locally
+    #+sbcl (declare (sb-ext:muffle-conditions style-warning))
+    (handler-bind ((style-warning #'muffle-warning))
+      (defclass dbd-imaginedb (dbi-driver) ())
+      (defmethod make-connection ((class dbd-imaginedb) &rest params)
+        (declare (ignore params))
+        (make-instance 'dbi-connection))
 
-(defparameter *connection* (connect :imaginedb))
+      (defclass <dbd-imaginedb2> (<dbi-driver>) () )
+      (defmethod make-connection ((class <dbd-imaginedb2>) &rest params)
+        (declare (ignore params))
+        (make-instance '<dbi-connection>))))
 
-(ok (typep *connection* '<dbi-connection>)
-    "connect")
+  (ok (c2mop:subclassp (find-driver :imaginedb) 'dbi-driver)
+      "find-driver: which exists")
+  (ok (c2mop:subclassp (find-driver :imaginedb2) 'dbi-driver)
+      "find-driver: which exists")
 
-(defparameter *query*
-              (prepare *connection* "SELECT * FROM kyoto WHERE type = ?"))
+  (ok (find (find-class 'dbd-imaginedb) (list-all-drivers))
+      "list-all-drivers")
+  (ok (find (find-class '<dbd-imaginedb2>) (list-all-drivers))
+      "list-all-drivers")
 
-(ok (typep *query* '<dbi-query>)
-    "prepare")
+  (let ((conn (connect :imaginedb))
+        (conn2 (connect :imaginedb2)))
 
-(ok (equal (funcall (slot-value *query* 'dbi.driver::prepared) "cafe")
-           "SELECT * FROM kyoto WHERE type = 'cafe'")
-    "prepare-sql")
+    (ok (typep conn 'dbi-connection)
+        "connect")
+    (ok (typep conn2 '<dbi-connection>)
+        "connect")
 
-(c2mop:remove-direct-subclass (find-class '<dbi-driver>) (find-class '<dbd-imaginedb>))
+    (let ((query (prepare conn "SELECT * FROM kyoto WHERE type = ?"))
+          (query2 (prepare conn2 "SELECT * FROM kyoto WHERE type = ?")))
+
+      (ok (typep query 'dbi-query)
+          "prepare")
+      (ok (typep query2 '<dbi-query>)
+          "prepare")
+
+      (ok (equal (funcall (query-prepared query) "cafe")
+                 "SELECT * FROM kyoto WHERE type = 'cafe'")
+          "prepare-sql")
+      (ok (equal (funcall (query-prepared query2) "cafe")
+                 "SELECT * FROM kyoto WHERE type = 'cafe'")
+          "prepare-sql"))))

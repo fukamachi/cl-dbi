@@ -3,6 +3,7 @@
         #:dbi.driver
         #:dbi.logger
         #:dbi.error
+        #:dbi.utils
         #:cl-postgres)
   (:import-from #:cl-postgres
                 #:connection-socket
@@ -20,14 +21,17 @@
   (:import-from #:trivial-garbage
                 #:finalize
                 #:cancel-finalization)
-  (:export #:<dbd-postgres>
+  (:export #:dbd-postgres
+           #:dbd-postgres-connection
+           #:dbd-postgres-query
+           #:<dbd-postgres>
            #:<dbd-postgres-connection>
            #:<dbd-postgres-query>))
 (in-package #:dbd.postgres)
 
-(defclass <dbd-postgres> (<dbi-driver>) ())
+(defclass/a dbd-postgres (dbi-driver) ())
 
-(defclass <dbd-postgres-connection> (<dbi-connection>)
+(defclass/a dbd-postgres-connection (dbi-connection)
   ((%modified-row-count :type (or null fixnum)
                         :initform nil)
    (%deallocation-queue :type list
@@ -45,13 +49,13 @@
   (+ #.(encode-universal-time 0 0 0 1 1 2000 0)
      (/ usec 1000000.0d0)))
 
-(defmethod make-connection ((driver <dbd-postgres>) &key database-name username password (host "localhost") (port 5432) (use-ssl :no) (microsecond-precision nil))
+(defmethod make-connection ((driver dbd-postgres) &key database-name username password (host "localhost") (port 5432) (use-ssl :no) (microsecond-precision nil))
   (when microsecond-precision
     (cl-postgres:set-sql-datetime-readers
      :timestamp #'usec-convert
      :timestamp-with-timezone #'usec-convert
      :time #'usec-convert))
-  (make-instance '<dbd-postgres-connection>
+  (make-instance 'dbd-postgres-connection
      :database-name database-name
      :handle (open-database database-name
                             (or username (get-default-user))
@@ -60,7 +64,7 @@
                             port
                             use-ssl)))
 
-(defclass <dbd-postgres-query> (<dbi-query>)
+(defclass/a dbd-postgres-query (dbi-query)
   ((name :initarg :name)
    (freedp :initform nil
            :accessor query-freed-p)))
@@ -68,15 +72,15 @@
 (defmacro with-handling-pg-errors (&body body)
   `(handler-case (progn ,@body)
      (syntax-error-or-access-violation (e)
-       (error '<dbi-programming-error>
+       (error 'dbi-programming-error
               :message (database-error-message e)
               :error-code (database-error-code e)))
      (database-error (e)
-       (error '<dbi-database-error>
+       (error 'dbi-database-error
               :message (database-error-message e)
               :error-code (database-error-code e)))))
 
-(defmethod prepare ((conn <dbd-postgres-connection>) (sql string) &key)
+(defmethod prepare ((conn dbd-postgres-connection) (sql string) &key)
   ;; Deallocate used prepared statements here,
   ;; because GC finalizer may run during processing another query and fail.
   (loop repeat 10 ;; To prevent from freeing many query objects at once
@@ -97,7 +101,7 @@
                   else do (write-char c s))))
     (with-handling-pg-errors
       (let* ((conn-handle (connection-handle conn))
-             (query (make-instance '<dbd-postgres-query>
+             (query (make-instance 'dbd-postgres-query
                                    :connection conn
                                    :name name
                                    :sql sql
@@ -108,7 +112,7 @@
                                (not (query-freed-p query)))
                       (push name (slot-value conn '%deallocation-queue)))))))))
 
-(defmethod execute-using-connection ((conn <dbd-postgres-connection>) (query <dbd-postgres-query>) params)
+(defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
   (with-handling-pg-errors
     (let (took-ms)
       (multiple-value-bind (result count)
@@ -129,16 +133,16 @@
         (or result
             (progn
               (setf (slot-value conn '%modified-row-count) count)
-              (make-instance '<dbd-postgres-query>
+              (make-instance 'dbd-postgres-query
                              :connection conn
                              :sql (query-sql query)
                              :results (list count)
                              :row-count count)))))))
 
-(defmethod fetch ((query <dbd-postgres-query>))
+(defmethod fetch ((query dbd-postgres-query))
   (pop (query-results query)))
 
-(defmethod do-sql ((conn <dbd-postgres-connection>) sql &rest params)
+(defmethod do-sql ((conn dbd-postgres-connection) sql &rest params)
   (if params
       (progn
         (call-next-method)
@@ -153,19 +157,19 @@
             (sql-log sql params row-count took-ms)
             row-count)))))
 
-(defmethod disconnect ((conn <dbd-postgres-connection>))
+(defmethod disconnect ((conn dbd-postgres-connection))
   (close-database (connection-handle conn)))
 
-(defmethod begin-transaction ((conn <dbd-postgres-connection>))
+(defmethod begin-transaction ((conn dbd-postgres-connection))
   (do-sql conn "BEGIN"))
 
-(defmethod commit ((conn <dbd-postgres-connection>))
+(defmethod commit ((conn dbd-postgres-connection))
   (do-sql conn "COMMIT"))
 
-(defmethod rollback ((conn <dbd-postgres-connection>))
+(defmethod rollback ((conn dbd-postgres-connection))
   (do-sql conn "ROLLBACK"))
 
-(defmethod ping ((conn <dbd-postgres-connection>))
+(defmethod ping ((conn dbd-postgres-connection))
   (let ((handle (connection-handle conn)))
     (handler-case
         (and (database-open-p handle)
@@ -180,11 +184,11 @@
         nil)
       (error () nil))))
 
-(defmethod free-query-resources ((query <dbd-postgres-query>))
+(defmethod free-query-resources ((query dbd-postgres-query))
   (unless (query-freed-p query)
     (unprepare-query (connection-handle (query-connection query)) (slot-value query 'name))
     (setf (query-freed-p query) t)
     (cancel-finalization query)))
 
-(defmethod row-count ((conn <dbd-postgres-connection>))
+(defmethod row-count ((conn dbd-postgres-connection))
   (slot-value conn '%modified-row-count))

@@ -57,7 +57,7 @@
           params)))
 
 (deftest connect
-  (ok (typep *db* '<dbi-connection>)))
+  (ok (typep *db* 'dbi-connection)))
 
 (deftest do-sql
   (ok (eql (do-sql *db* "DROP TABLE IF EXISTS person") 0))
@@ -71,12 +71,12 @@
 (deftest prepare-execute-fetch
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person"))
-    (ok (typep query '<dbi-query>))
+    (ok (typep query 'dbi-query))
     (setf result (execute query))
     (ok (equal (fetch-all result)
                '((:|id| 1 :|name| "fukamachi") (:|id| 2 :|name| "matsuyama"))))
     (setf result (execute query))
-    (ok (typep result '<dbi-query>))
+    (ok (typep result 'dbi-query))
     (let ((result (fetch result)))
       (ok (typep result '(non-nil property-list)))
       (ok (equal (getf result :|name|) "fukamachi")))
@@ -89,7 +89,7 @@
     (ok (null (fetch result))))
 
   (ok (typep (execute (prepare *db* "INSERT INTO person (id, name) VALUES (3, 'snmsts')"))
-             '<dbi-query>))
+             'dbi-query))
   (ok (eql (row-count *db*) 1))
   (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
          (result (execute query "snmsts")))
@@ -98,9 +98,9 @@
 (deftest place-holder
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person WHERE name = ?"))
-    (ok (typep query '<dbi-query>))
+    (ok (typep query 'dbi-query))
     (setf result (execute query "matsuyama"))
-    (ok (typep result '<dbi-query>))
+    (ok (typep result 'dbi-query))
     (ok (typep (fetch result) '(non-nil property-list)))
     (ok (null (fetch result)))))
 
@@ -112,7 +112,7 @@
           (do-sql *db* "INSERT INTO person (id, name) VALUES (4, 'meymao')"))
         (ok (equal (fetch (execute (prepare *db* "SELECT * FROM person WHERE name = 'meymao'")))
                    '(:|id| 4 :|name| "meymao"))))
-    (dbi.error:<dbi-notsupported-error> ()
+    (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
 (deftest with-nested-transaction
@@ -141,7 +141,7 @@
             (ok (= (get-row-number) 1)
                 "And now we have only one row"))))
 
-    (dbi.error:<dbi-notsupported-error> ()
+    (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
 (deftest duplicate-rollback
@@ -151,10 +151,10 @@
         (rollback *db*)
         ;; Second rollback should fail
         (ok (signals (rollback *db*)
-                     'dbi.error:<dbi-already-rolled-back-error>)
+                     'dbi.error:dbi-already-rolled-back-error)
             "Duplicate rollback should raise an error"))
 
-    (dbi.error:<dbi-notsupported-error> ()
+    (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
 (deftest select-after-rollback
@@ -164,10 +164,10 @@
         (rollback *db*)
         ;; Attempt to execute a SELECT after the manual rollback should fail
         (ok (signals (do-sql *db* "SELECT 1")
-                     'dbi.error:<dbi-already-rolled-back-error>)
+                     'dbi.error:dbi-already-rolled-back-error)
             "SQL statements should fail after the manual rollback"))
 
-    (dbi.error:<dbi-notsupported-error> ()
+    (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
 (deftest select-after-commit
@@ -177,10 +177,10 @@
         (commit *db*)
         ;; Attempt to execute a SELECT after the manual commit should fail
         (ok (signals (do-sql *db* "SELECT 1")
-                     'dbi.error:<dbi-already-commited-error>)
+                     'dbi.error:dbi-already-commited-error)
             "SQL statements should fail after the manual commit"))
 
-    (dbi.error:<dbi-notsupported-error> ()
+    (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
 (deftest duplicate-commit
@@ -190,10 +190,10 @@
         (commit *db*)
         ;; Second rollback should fail
         (ok (signals (commit *db*)
-                     'dbi.error:<dbi-already-commited-error>)
+                     'dbi.error:dbi-already-commited-error)
             "Duplicate commit should raise an error"))
 
-    (dbi.error:<dbi-notsupported-error> ()
+    (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
 (deftest code-execution-after-manual-commit
@@ -206,14 +206,14 @@
         (ok (eql value :foo)
             "Value should be set to foo even after the manual commit."))
 
-    (dbi.error:<dbi-notsupported-error> ()
+    (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
 (deftest statement-error
   (ok (typep (handler-case (do-sql *db* "INSERT")
                (error (e) e))
-             '<dbi-database-error>))
+             'dbi-database-error))
   (ok (typep (handler-case (execute (prepare *db* "SELECT SELECT SELECT"))
                (error (e) e))
-             '<dbi-database-error>))
+             'dbi-database-error))
   (do-sql *db* "INSERT INTO person (id, name) VALUES (5, 'mizuna')"))

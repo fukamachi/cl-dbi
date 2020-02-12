@@ -2,6 +2,7 @@
   (:use #:cl
         #:dbi.driver
         #:dbi.logger
+        #:dbi.utils
         #:cl-mysql)
   (:shadowing-import-from #:dbi.driver
                           #:disconnect
@@ -16,18 +17,22 @@
                 #:owner-pool
                 #:+server-gone-error+
                 #:+server-lost+)
-  (:export #:<dbd-mysql>
+  (:export #:dbd-mysql
+           #:dbd-mysql-connection
+           #:dbd-mysql-query
+           #:mysql-use-store
+
+           #:<dbd-mysql>
            #:<dbd-mysql-connection>
-           #:<dbd-mysql-query>
-           #:mysql-use-store))
+           #:<dbd-mysql-query>))
 (in-package #:dbd.mysql)
 
-(defclass <dbd-mysql> (<dbi-driver>) ())
+(defclass/a dbd-mysql (dbi-driver) ())
 
-(defclass <dbd-mysql-connection> (<dbi-connection>) ())
+(defclass/a dbd-mysql-connection (dbi-connection) ())
 
-(defmethod make-connection ((driver <dbd-mysql>) &key host database-name username password port socket client-flag)
-  (make-instance '<dbd-mysql-connection>
+(defmethod make-connection ((driver dbd-mysql) &key host database-name username password port socket client-flag)
+  (make-instance 'dbd-mysql-connection
      :database-name database-name
      :handle (connect :host host
                       :database database-name
@@ -37,16 +42,16 @@
                       :socket socket
                       :client-flag client-flag)))
 
-(defclass <dbd-mysql-query> (<dbi-query>)
-  ((store :initarg :store :initform T
+(defclass dbd-mysql-query (dbi-query)
+  ((store :initarg :store :initform t
           :accessor mysql-use-store)))
 
 (defstruct (mysql-result-list (:constructor make-mysql-result-list (&optional result-set row-count)))
   (result-set nil :type list)
   (row-count nil :type integer))
 
-(defmethod prepare ((conn <dbd-mysql-connection>) (sql string) &key (store T))
-  (let ((query (call-next-method conn sql :query-class '<dbd-mysql-query>)))
+(defmethod prepare ((conn dbd-mysql-connection) (sql string) &key (store t))
+  (let ((query (call-next-method conn sql :query-class 'dbd-mysql-query)))
     (setf (mysql-use-store query) store)
     query))
 
@@ -77,7 +82,7 @@
                                     ;; Return the modified count for modification query.
                                     (first (process-result-set handle (make-hash-table))))))))
 
-(defmethod execute-using-connection ((conn <dbd-mysql-connection>) (query <dbd-mysql-query>) params)
+(defmethod execute-using-connection ((conn dbd-mysql-connection) (query dbd-mysql-query) params)
   (let* (took-ms
          (result
            (with-error-handler conn
@@ -99,28 +104,28 @@
     (setf (query-results query) result)
     query))
 
-(defmethod fetch-using-connection ((conn <dbd-mysql-connection>) query)
+(defmethod fetch-using-connection ((conn dbd-mysql-connection) query)
   (let ((result (query-results query)))
     (if (mysql-result-list-p result)
         (pop (slot-value result 'result-set))
         (fetch-next-row result))))
 
-(defmethod escape-sql ((conn <dbd-mysql-connection>) (sql string))
+(defmethod escape-sql ((conn dbd-mysql-connection) (sql string))
   (escape-string sql :database (connection-handle conn)))
 
-(defmethod disconnect ((conn <dbd-mysql-connection>))
+(defmethod disconnect ((conn dbd-mysql-connection))
   (cl-mysql:disconnect (connection-handle conn)))
 
-(defmethod begin-transaction ((conn <dbd-mysql-connection>))
+(defmethod begin-transaction ((conn dbd-mysql-connection))
   (do-sql conn "START TRANSACTION"))
 
-(defmethod commit ((conn <dbd-mysql-connection>))
+(defmethod commit ((conn dbd-mysql-connection))
   (do-sql conn "COMMIT"))
 
-(defmethod rollback ((conn <dbd-mysql-connection>))
+(defmethod rollback ((conn dbd-mysql-connection))
   (do-sql conn "ROLLBACK"))
 
-(defmethod ping ((conn <dbd-mysql-connection>))
+(defmethod ping ((conn dbd-mysql-connection))
   (handler-bind ((mysql-error
                    (lambda (e)
                      (when (or (= (mysql-error-errno e) +server-gone-error+)
@@ -128,5 +133,5 @@
                        (return-from ping nil)))))
     (cl-mysql:ping :database (connection-handle conn))))
 
-(defmethod row-count ((conn <dbd-mysql-connection>))
+(defmethod row-count ((conn dbd-mysql-connection))
   (second (fetch (execute (prepare conn "SELECT ROW_COUNT()" :store T)))))

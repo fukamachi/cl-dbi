@@ -1,15 +1,15 @@
 (defpackage #:dbi.driver
   (:use #:cl
+        #:dbi.utils
         #:split-sequence)
   (:import-from #:dbi.error
-                #:<dbi-error>)
+                #:dbi-error
+                #:dbi-unimplemented-error
+                #:dbi-notsupported-error)
   (:import-from #:c2mop
                 #:class-direct-subclasses)
-  (:import-from #:dbi.error
-                #:<dbi-unimplemented-error>
-                #:<dbi-notsupported-error>)
-  (:export #:<dbi-driver>
-           #:<dbi-connection>
+  (:export #:dbi-driver
+           #:dbi-connection
            #:connection-database-name
            #:connection-handle
            #:connection-driver-type
@@ -17,7 +17,7 @@
            #:disconnect
            #:find-driver
            #:list-all-drivers
-           #:<dbi-query>
+           #:dbi-query
            #:query-connection
            #:query-sql
            #:query-prepared
@@ -42,13 +42,17 @@
            #:ping
            #:row-count
            #:free-query-resources
-           #:escape-sql))
+           #:escape-sql
+
+           #:<dbi-driver>
+           #:<dbi-connection>
+           #:<dbi-query>))
 (in-package #:dbi.driver)
 
-(defclass <dbi-driver> () ()
+(defclass/a dbi-driver () ()
   (:documentation "Base class for DB driver."))
 
-(defclass <dbi-connection> ()
+(defclass/a dbi-connection ()
   ((auto-commit :type boolean
                 :initarg :auto-commit
                 :initform t)
@@ -59,7 +63,7 @@
   (:documentation "Base class for managing DB connection."))
 
 (defgeneric connection-driver-type (conn)
-  (:method ((conn <dbi-connection>))
+  (:method ((conn dbi-connection))
     (let ((package (package-name (symbol-package (type-of conn)))))
       (cond
         ((string= package #.(string :dbd.mysql))    :mysql)
@@ -67,34 +71,38 @@
         ((string= package #.(string :dbd.sqlite3))  :sqlite3)))))
 
 (defgeneric make-connection (driver &key)
-  (:documentation "Create a instance of `<dbi-connection>` for the `driver`.
+  (:documentation "Create a instance of `dbi-connection` for the `driver`.
 This method must be implemented in each drivers.")
-  (:method ((driver <dbi-driver>) &key)
+  (:method ((driver dbi-driver) &key)
     (declare (ignore driver))
-    (error '<dbi-unimplemented-error>
+    (error 'dbi-unimplemented-error
            :method-name 'make-connection)))
 
 (defgeneric disconnect (conn)
-  (:method ((conn <dbi-connection>))
+  (:method ((conn dbi-connection))
     (declare (ignore conn))
-    (error '<dbi-unimplemented-error>
+    (error 'dbi-unimplemented-error
            :method-name 'disconnect)))
 
 (defun find-driver (driver-name)
   "Find a driver class named as `driver-name`.
 `driver-name` is a string designer.
-Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
-  (find (format nil "<DBD-~:@(~A~)>" driver-name)
-        (list-all-drivers)
-        :test #'string=
-        :key #'class-name))
+Driver should be named like 'DBD-SOMETHING' for a database 'something'."
+  (or (find (format nil "~A-~A" :dbd driver-name)
+            (list-all-drivers)
+            :test #'string-equal
+            :key #'class-name)
+      (find (format nil "<~A-~A>" :dbd driver-name)
+            (list-all-drivers)
+            :test #'string-equal
+            :key #'class-name)))
 
 (defun list-all-drivers ()
-  "Return a list of direct subclasses for `<dbi-driver>`."
-  (c2mop:class-direct-subclasses (find-class '<dbi-driver>)))
+  "Return a list of direct subclasses for `dbi-driver`."
+  (c2mop:class-direct-subclasses (find-class 'dbi-driver)))
 
-(defclass <dbi-query> ()
-  ((connection :type <dbi-connection>
+(defclass/a dbi-query ()
+  ((connection :type dbi-connection
                :initarg :connection
                :initform nil
                :accessor query-connection)
@@ -114,8 +122,8 @@ Driver should be named like '<DBD-SOMETHING>' for a database 'something'."
 
 (defgeneric prepare (conn sql &key))
 
-(defmethod prepare ((conn <dbi-connection>) (sql string) &key (query-class '<dbi-query>))
-  "Preparing executing SQL statement and returns a instance of `<dbi-query>`.
+(defmethod prepare ((conn dbi-connection) (sql string) &key (query-class 'dbi-query))
+  "Preparing executing SQL statement and returns a instance of `dbi-query`.
 This method may be overrided by subclasses."
   (make-instance query-class
      :connection conn
@@ -124,7 +132,7 @@ This method may be overrided by subclasses."
 
 (defgeneric execute (query &rest params)
   (:documentation "Execute `query` with `params` and return the results.")
-  (:method ((query <dbi-query>) &rest params)
+  (:method ((query dbi-query) &rest params)
     (execute-using-connection
      (query-connection query)
      query
@@ -132,30 +140,30 @@ This method may be overrided by subclasses."
 
 (defgeneric fetch (query)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
-  (:method ((query <dbi-query>))
+  (:method ((query dbi-query))
     (fetch-using-connection (query-connection query) query)))
 
 (defgeneric fetch-all (query)
   (:documentation "Fetch all rest rows from `query`.")
-  (:method ((query <dbi-query>))
+  (:method ((query dbi-query))
     (loop for result = (fetch query)
           while result
           collect result)))
 
 (defgeneric fetch-using-connection (conn query)
-  (:method ((conn <dbi-connection>) (query <dbi-query>))
-    (error '<dbi-unimplemented-error>
+  (:method ((conn dbi-connection) (query dbi-query))
+    (error 'dbi-unimplemented-error
            :method-name 'fetch-using-connection)))
 
 (defgeneric do-sql (conn sql &rest params)
   (:documentation "Do preparation and execution at once.
 This method may be overrided by subclasses.")
-  (:method ((conn <dbi-connection>) (sql string) &rest params)
+  (:method ((conn dbi-connection) (sql string) &rest params)
     (let ((query (prepare conn sql)))
       (unwind-protect (progn (apply #'execute query params)
                              (query-row-count query))
         (free-query-resources query))))
-  (:method :around ((conn <dbi-connection>) sql &rest params)
+  (:method :around ((conn dbi-connection) sql &rest params)
     (declare (ignorable sql params))
     (let ((state (get-transaction-state conn)))
       (when state
@@ -165,20 +173,20 @@ This method may be overrided by subclasses.")
 (defgeneric execute-using-connection (conn query params)
   (:documentation "Execute `query` in `conn`.
 This method must be implemented in each drivers.")
-  (:method ((conn <dbi-connection>) (query <dbi-query>) params)
+  (:method ((conn dbi-connection) (query dbi-query) params)
     (declare (ignore conn query params))
-    (error '<dbi-unimplemented-error>
+    (error 'dbi-unimplemented-error
            :method-name 'execute-using-connection)))
 
 
 (defgeneric begin-transaction (conn)
   (:documentation "Start a transaction.")
-  (:method ((conn <dbi-connection>))
+  (:method ((conn dbi-connection))
     (declare (ignore conn))
-    (error '<dbi-notsupported-error>
+    (error 'dbi-notsupported-error
            :method-name 'begin-transaction)))
 
-(defmethod begin-transaction :around ((conn <dbi-connection>))
+(defmethod begin-transaction :around ((conn dbi-connection))
   "Turn `auto-commit` off automatically before starting a transaction."
   (symbol-macrolet ((auto-commit (slot-value conn 'auto-commit)))
      (let ((saved auto-commit))
@@ -194,8 +202,8 @@ This method must be implemented in each drivers.")
 
 (define-condition transaction-done-condition () ())
 
-(defclass <transaction-state> ()
-  ((conn :type <dbi-connection>
+(defclass transaction-state ()
+  ((conn :type dbi-connection
          :initarg :conn
          :reader get-conn)
    (state :initform :in-progress
@@ -204,7 +212,7 @@ This method must be implemented in each drivers.")
                         :rolled-back)
           :accessor get-state)))
 
-(defclass <savepoint-state> (<transaction-state>)
+(defclass savepoint-state (transaction-state)
   ((identifier :type string
                :initform (generate-random-savepoint)
                :reader get-identifier)))
@@ -224,7 +232,7 @@ This method must be implemented in each drivers.")
   (let ((ok (gensym "SAVEPOINT-OK"))
         (state-var (gensym "STATE-VAR"))
         (ident-var (gensym "SAVEPOINT-IDENTIFIER-VAR")))
-    `(let* ((,state-var (make-instance '<savepoint-state>
+    `(let* ((,state-var (make-instance 'savepoint-state
                                        :conn ,conn))
             (,ident-var (get-identifier ,state-var))
             (*transaction-state*
@@ -247,8 +255,8 @@ This method must be implemented in each drivers.")
   (let ((ok (gensym "TRANSACTION-OK"))
         (state-var (gensym "STATE-VAR")))
     `(let* ((state-class (if (in-transaction ,conn)
-                             '<savepoint-state>
-                             '<transaction-state>))
+                             'savepoint-state
+                             'transaction-state))
             (,state-var (make-instance state-class
                                        :conn ,conn))
             (*transaction-state*
@@ -278,59 +286,59 @@ This method must be implemented in each drivers.")
 (defun assert-transaction-is-in-progress (transaction-state)
   (case (get-state transaction-state)
     (:commited
-     (error 'dbi.error:<dbi-already-commited-error>))
+     (error 'dbi.error:dbi-already-commited-error))
     (:rolled-back
-     (error 'dbi.error:<dbi-already-rolled-back-error>))))
+     (error 'dbi.error:dbi-already-rolled-back-error))))
 
 (defgeneric commit (conn)
   (:documentation "Commit changes and end the current transaction.")
-  (:method ((conn <dbi-connection>))
+  (:method ((conn dbi-connection))
     (declare (ignore conn))
-    (error '<dbi-notsupported-error>
+    (error 'dbi-notsupported-error
            :method-name 'commit))
-  (:method :around ((conn <dbi-connection>))
+  (:method :around ((conn dbi-connection))
     (let ((state (get-transaction-state conn)))
       (when state
         (assert-transaction-is-in-progress state)
 
         (multiple-value-prog1
             (etypecase state
-              (<savepoint-state>
+              (savepoint-state
                (release-savepoint conn
                                   (get-identifier state)))
-              (<transaction-state>
+              (transaction-state
                (call-next-method)))
           (setf (get-state state)
                 :commited))))))
 
 (defgeneric rollback (conn)
   (:documentation "Rollback all changes and end the current transaction.")
-  (:method ((conn <dbi-connection>))
+  (:method ((conn dbi-connection))
     (declare (ignore conn))
-    (error '<dbi-notsupported-error>
+    (error 'dbi-notsupported-error
            :method-name 'rollback))
-  (:method :around ((conn <dbi-connection>))
+  (:method :around ((conn dbi-connection))
     (let ((state (get-transaction-state conn)))
       (when state
         (assert-transaction-is-in-progress state)
 
         (multiple-value-prog1
             (etypecase state
-              (<savepoint-state>
+              (savepoint-state
                (rollback-savepoint conn
                                    (get-identifier state)))
-              (<transaction-state>
+              (transaction-state
                (call-next-method)))
           (setf (get-state state)
                 :rolled-back))))))
 
 (defgeneric savepoint (conn identifier)
-  (:method ((conn <dbi-connection>) identifier)
+  (:method ((conn dbi-connection) identifier)
     (do-sql conn (format nil "SAVEPOINT ~A" identifier))))
 
 (defmacro finalize-savepoint (new-state &body body)
   `(let ((state (get-transaction-state conn)))
-     (unless (typep state '<savepoint-state>)
+     (unless (typep state 'savepoint-state)
        (error "Please, use release-savepoint inside of with-savepoint block."))
      (unless (equal (get-identifier state)
                     identifier)
@@ -344,49 +352,49 @@ This method must be implemented in each drivers.")
              ,new-state))))
 
 (defgeneric rollback-savepoint (conn &optional identifier)
-  (:method ((conn <dbi-connection>) &optional identifier)
+  (:method ((conn dbi-connection) &optional identifier)
     (do-sql conn (format nil "ROLLBACK TO ~A" identifier)))
 
-  (:method :around ((conn <dbi-connection>) &optional identifier)
+  (:method :around ((conn dbi-connection) &optional identifier)
     (finalize-savepoint :rolled-back
       (call-next-method conn identifier))))
 
 (defgeneric release-savepoint (conn &optional identifier)
-  (:method ((conn <dbi-connection>) &optional identifier)
+  (:method ((conn dbi-connection) &optional identifier)
     (do-sql conn (format nil "RELEASE ~A" identifier)))
 
-  (:method :around ((conn <dbi-connection>) &optional identifier)
+  (:method :around ((conn dbi-connection) &optional identifier)
     (finalize-savepoint :commited
       (call-next-method conn identifier))))
 
 (defgeneric ping (conn)
   (:documentation
    "Check if the database server is still running and the connection to it is still working.")
-  (:method ((conn <dbi-connection>))
+  (:method ((conn dbi-connection))
     (declare (ignore conn))
-    (error '<dbi-notsupported-error>
+    (error 'dbi-notsupported-error
            :method-name 'ping)))
 
 (defgeneric row-count (conn)
   (:documentation
    "Return the number of counts modified by the last executed INSERT/UPDATE/DELETE query.")
-  (:method ((conn <dbi-connection>))
+  (:method ((conn dbi-connection))
     (declare (ignore conn))
-    (error '<dbi-notsupported-error>
+    (error 'dbi-notsupported-error
            :method-name 'row-count)))
 
 (defgeneric free-query-resources (query)
   (:documentation "Free  the resources (e.g.  foreign,  heap allocated
-  memory) associated with  this query. This method  is specialized and
-  effective (and should matches each 'prepare' function call) only for
-  <dbd-sqlite3-query>. The default method currently has empty body.")
+memory) associated with  this query. This method  is specialized and
+effective (and should matches each 'prepare' function call) only for
+dbd-sqlite3-query. The default method currently has empty body.")
   (:method (query))) ;; does nothing
 
 (defgeneric escape-sql (conn sql)
   (:documentation "Return escaped `sql`.
 This method may be overrided by subclasses when needed.
 For example, in case of MySQL and PostgreSQL, backslashes must be escaped by doubling it.")
-  (:method ((conn <dbi-connection>) (sql string))
+  (:method ((conn dbi-connection) (sql string))
     (with-output-to-string (out)
       (loop for c across sql
             if (char= c #\')
@@ -397,7 +405,7 @@ For example, in case of MySQL and PostgreSQL, backslashes must be escaped by dou
 (defgeneric prepare-sql (conn sql)
   (:documentation
    "Create a function that takes parameters, binds them into a query and returns SQL as a string.")
-  (:method ((conn <dbi-connection>) (sql string))
+  (:method ((conn dbi-connection) (sql string))
     (labels ((param-to-sql (param)
                (typecase param
                  (string (concatenate 'string "'" (escape-sql conn param) "'"))

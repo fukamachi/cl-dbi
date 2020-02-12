@@ -6,11 +6,13 @@
                "closer-mop"
                "bordeaux-threads")
   :components ((:module "src"
+                :depends-on ("src/utils")
                 :components
                 ((:file "dbi" :depends-on ("driver" "logger"))
                  (:file "driver" :depends-on ("error"))
                  (:file "logger")
-                 (:file "error"))))
+                 (:file "error")))
+               (:file "src/utils"))
   :description "Database independent interface for Common Lisp"
   :in-order-to ((test-op (test-op "dbi/test"))))
 
