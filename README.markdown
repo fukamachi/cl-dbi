@@ -16,7 +16,7 @@
 (let* ((query (dbi:prepare *connection*
                            "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?"))
        (query (dbi:execute query 0 "2011-11-01")))
-  (loop for row = (dbi:fetch result)
+  (loop for row = (dbi:fetch query)
         while row
         ;; process "row".
         ))
