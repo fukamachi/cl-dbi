@@ -25,7 +25,7 @@
          (old-object (gethash key cache)))
     (when (and old-object
                (cache-pool-cleanup-fn pool))
-      (funcall (cache-pool-cleanup-fn pool)))
+      (funcall (cache-pool-cleanup-fn pool) old-object))
     (setf (gethash key cache) object)))
 
 ;; Just do nothing since it's single-threaded and the thread is obviously alive.
