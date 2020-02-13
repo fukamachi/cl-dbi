@@ -25,8 +25,8 @@
     (gethash key cache)))
 
 (defun (setf get-object) (object pool key)
-  (let ((cache (steal-cache-table pool))
-        (old-object (gethash key cache)))
+  (let* ((cache (steal-cache-table pool))
+         (old-object (gethash key cache)))
     (when (and old-object
                (cache-pool-cleanup-fn pool))
       (funcall (cache-pool-cleanup-fn pool)))
