@@ -23,6 +23,7 @@
            #:query-prepared
            #:query-results
            #:query-row-count
+           #:query-cached-p
            #:prepare
            #:prepare-cached
            #:execute

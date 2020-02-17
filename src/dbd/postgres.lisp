@@ -14,6 +14,7 @@
                 #:syntax-error-or-access-violation
                 #:database-error-message
                 #:database-error-code
+                #:invalid-sql-statement-name
 
                 #:admin-shutdown
                 #:crash-shutdown
@@ -116,19 +117,32 @@
   (with-handling-pg-errors
     (let (took-ms)
       (multiple-value-bind (result count)
-          (with-took-ms took-ms
-            (exec-prepared (connection-handle conn)
-                           (slot-value query 'name)
-                           params
-                           ;; TODO: lazy fetching
-                           (row-reader (fields)
-                             (let ((result
-                                     (loop while (next-row)
-                                           collect (loop for field across fields
-                                                         collect (intern (field-name field) :keyword)
-                                                         collect (next-field field)))))
-                               (setf (query-results query) result)
-                               query))))
+        (with-took-ms took-ms
+          (block nil
+            (tagbody retry
+              (handler-case
+                  (return (exec-prepared (connection-handle conn)
+                                         (slot-value query 'name)
+                                         params
+                                         ;; TODO: lazy fetching
+                                         (row-reader (fields)
+                                                     (let ((result
+                                                             (loop while (next-row)
+                                                                   collect (loop for field across fields
+                                                                                 collect (intern (field-name field) :keyword)
+                                                                                 collect (next-field field)))))
+                                                       (setf (query-results query) result)
+                                                       query))))
+                (invalid-sql-statement-name (e)
+                  ;; Retry if cached prepared statement is not available anymore
+                  (when (query-cached-p query)
+                    (assert (eq conn (query-connection query)))
+                    (setf (query-prepared query)
+                          (prepare-query (connection-handle conn) (symbol-name (gensym "PREPARED-STATEMENT"))
+                                         (query-sql query)))
+                    (setf (query-cached-p query) nil)
+                    (go retry))
+                  (error e))))))
         (sql-log (query-sql query) params count took-ms)
         (or result
             (progn
