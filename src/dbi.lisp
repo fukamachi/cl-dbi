@@ -32,9 +32,6 @@
   (:import-from #:dbi.logger
                 #:*sql-execution-hooks*
                 #:simple-sql-logger)
-  (:import-from #:bordeaux-threads
-                #:current-thread
-                #:thread-alive-p)
   (:export #:list-all-drivers
            #:find-driver
            #:connection-driver-type
