@@ -78,9 +78,9 @@
     query))
 
 (defmethod do-sql ((conn dbd-sqlite3-connection) (sql string) &rest params)
-  (let (took-nsec)
+  (let (took-usec)
     (handler-case
-        (with-took-nsec took-nsec
+        (with-took-usec took-usec
           (apply #'execute-non-query (connection-handle conn) sql params))
       (sqlite-error (e)
         (if (eq (sqlite-error-code e) :error)
@@ -91,7 +91,7 @@
                    :message (sqlite-error-message e)
                    :error-code (sqlite-error-code e)))))
     (let ((row-count (row-count conn)))
-      (sql-log sql params row-count took-nsec)
+      (sql-log sql params row-count took-usec)
       (values row-count))))
 
 (defmethod fetch-using-connection ((conn dbd-sqlite3-connection) (query dbd-sqlite3-query))

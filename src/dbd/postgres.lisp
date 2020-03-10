@@ -115,9 +115,9 @@
 
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
   (with-handling-pg-errors
-    (let (took-nsec)
+    (let (took-usec)
       (multiple-value-bind (result count)
-        (with-took-nsec took-nsec
+        (with-took-usec took-usec
           (block nil
             (tagbody retry
               (handler-case
@@ -143,7 +143,7 @@
                     (setf (query-cached-p query) nil)
                     (go retry))
                   (error e))))))
-        (sql-log (query-sql query) params count took-nsec)
+        (sql-log (query-sql query) params count took-usec)
         (or result
             (progn
               (setf (slot-value conn '%modified-row-count) count)
@@ -162,13 +162,13 @@
         (call-next-method)
         (row-count conn))
       (with-handling-pg-errors
-        (let (took-nsec)
+        (let (took-usec)
           (let ((row-count
                   (or (nth-value 1
-                                 (with-took-nsec took-nsec
+                                 (with-took-usec took-usec
                                    (exec-query (connection-handle conn) sql)))
                       0)))
-            (sql-log sql params row-count took-nsec)
+            (sql-log sql params row-count took-usec)
             row-count)))))
 
 (defmethod disconnect ((conn dbd-postgres-connection))

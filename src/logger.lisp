@@ -3,12 +3,12 @@
   (:export #:*sql-execution-hooks*
            #:simple-sql-logger
            #:sql-log
-           #:with-took-nsec))
+           #:with-took-usec))
 (in-package #:dbi.logger)
 
 (defvar *sql-execution-hooks* '())
 
-(defun simple-sql-logger (sql params row-count took-nsec)
+(defun simple-sql-logger (sql params row-count took-usec)
   (format t "~&~<;; ~@;~A (~{~S~^, ~}) ~@[[~D row~:P]~]~@[ (~Fms)~]~:>~%"
           (list sql
                 (mapcar (lambda (param)
@@ -17,7 +17,7 @@
                               param))
                         params)
                 row-count
-                (/ took-nsec 1000d0))))
+                (/ took-usec 1000d0))))
 
 (defun sql-log (sql params row-count took-ms)
   (dolist (hook-fn *sql-execution-hooks*)
@@ -25,22 +25,22 @@
   (values))
 
 #+sbcl
-(defmacro with-took-nsec (var &body body)
+(defmacro with-took-usec (var &body body)
   (let ((before-unixtime (gensym "BEFORE-UNIXTIME"))
-        (before-nsec (gensym "BEFORE-NSEC"))
+        (before-usec (gensym "BEFORE-USEC"))
         (after-unixtime (gensym "AFTER-UNIXTIME"))
-        (after-nsec (gensym "AFTER-NSEC")))
-    `(multiple-value-bind (,before-unixtime ,before-nsec)
+        (after-usec (gensym "AFTER-USEC")))
+    `(multiple-value-bind (,before-unixtime ,before-usec)
          (sb-ext:get-time-of-day)
        (multiple-value-prog1 (progn ,@body)
-         (multiple-value-bind (,after-unixtime ,after-nsec)
+         (multiple-value-bind (,after-unixtime ,after-usec)
              (sb-ext:get-time-of-day)
            (setf ,var (+ (* (- ,after-unixtime ,before-unixtime)
                             1000000)
-                         (- ,after-nsec ,before-nsec))))))))
+                         (- ,after-usec ,before-usec))))))))
 
 #-sbcl
-(defmacro with-took-nsec (var &body body)
+(defmacro with-took-usec (var &body body)
   (let ((before (gensym "BEFORE")))
     `(let ((,before (get-internal-real-time)))
        (multiple-value-prog1 (progn ,@body)

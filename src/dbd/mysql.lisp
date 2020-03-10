@@ -83,10 +83,10 @@
                                     (first (process-result-set handle (make-hash-table))))))))
 
 (defmethod execute-using-connection ((conn dbd-mysql-connection) (query dbd-mysql-query) params)
-  (let* (took-nsec
+  (let* (took-usec
          (result
            (with-error-handler conn
-             (with-took-nsec took-nsec
+             (with-took-usec took-usec
                (query (apply (query-prepared query) params)
                       :database (connection-handle conn)
                       :store nil)))))
@@ -96,11 +96,11 @@
       ((mysql-use-store query)
        (multiple-value-bind (rows count)
            (fetch-all-rows result)
-         (sql-log (query-sql query) params count took-nsec)
+         (sql-log (query-sql query) params count took-usec)
          (setf result (make-mysql-result-list rows count))
          (setf (query-row-count query) count)))
       (t
-       (sql-log (query-sql query) params nil took-nsec)))
+       (sql-log (query-sql query) params nil took-usec)))
     (setf (query-results query) result)
     query))
 
