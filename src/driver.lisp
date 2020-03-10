@@ -13,6 +13,7 @@
            #:connection-database-name
            #:connection-handle
            #:connection-driver-type
+           #:connection-established-at
            #:make-connection
            #:disconnect
            #:find-driver
@@ -63,7 +64,10 @@
    (%handle :initarg :handle
             :accessor connection-handle)
    (query-cache :initform (make-hash-table :test 'equal)
-                :accessor connection-query-cache))
+                :accessor connection-query-cache)
+   (established-at :initarg :established-at
+                   :initform (get-internal-real-time)
+                   :accessor connection-established-at))
   (:documentation "Base class for managing DB connection."))
 
 (defgeneric connection-driver-type (conn)

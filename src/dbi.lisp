@@ -8,6 +8,7 @@
                 #:find-driver
                 #:connection-driver-type
                 #:connection-database-name
+                #:connection-established-at
                 #:make-connection
                 #:disconnect
                 #:prepare
@@ -106,12 +107,21 @@
 
 (defvar *threads-connection-pool* (make-cache-pool :cleanup-fn #'disconnect))
 
+(defparameter *connection-cache-seconds*
+  (* 60 60 24))
+
 (defun connect-cached (&rest connect-args)
   (let* ((pool *threads-connection-pool*)
          (conn (get-object pool connect-args)))
     (if (and conn
              (ping conn))
-        conn
+        (progn
+          (when (< (get-internal-real-time)
+                   (+ (connection-established-at conn) *connection-cache-seconds*))
+            (disconnect conn)
+            (setf conn (apply #'connect connect-args))
+            (setf (get-object pool connect-args) conn))
+          conn)
         (prog1
             (setf (get-object pool connect-args)
                   (apply #'connect connect-args))
