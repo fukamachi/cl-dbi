@@ -26,7 +26,7 @@
 ```common-lisp
 (let* ((query (dbi:prepare *connection*
                            "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?"))
-       (query (dbi:execute query 0 "2011-11-01")))
+       (query (dbi:execute query (list 0 "2011-11-01"))))
   (loop for row = (dbi:fetch query)
         while row
         ;; process "row".
@@ -34,7 +34,7 @@
 
 ;; Do it all at once
 (dbi:fetch-all (dbi:execute (dbi:prepare *connection* "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?")
-                            0 "2011-11-01"))
+                            (list 0 "2011-11-01")))
 ```
 
 `dbi:do-sql` is another option that prepares and executes a single statement. It returns the number of rows affected. It's typically used for non-`SELECT` statements.
@@ -42,7 +42,7 @@
 ```common-lisp
 (dbi:do-sql *connection*
             "INSERT INTO somewhere (flag, updated_at) VALUES (?, NOW())"
-            0)
+            (list 0))
 ;=> 1
 ```
 
@@ -95,10 +95,10 @@ To load "cl-dbi":
 * connect-cached [driver-name &amp; params] =&gt; &lt;dbi-connection&gt;
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
-* execute [query &amp; params] =&gt; something
+* execute [query &amp;optional params] =&gt; something
 * fetch [result] =&gt; a row data as plist
 * fetch-all [result] =&gt; a list of all row data
-* do-sql [conn sql &amp; params]
+* do-sql [conn sql &amp;optional params]
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
 * find-driver [driver-name] =&gt; &lt;dbi-driver&gt;
 * with-transaction [conn]
@@ -117,7 +117,7 @@ To load "cl-dbi":
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * fetch-using-connection [conn result] =&gt; a row data as plist
-* do-sql [conn sql &amp; params]
+* do-sql [conn sql &amp;optional params]
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
 * begin-transaction [conn]
