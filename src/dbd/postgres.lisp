@@ -115,7 +115,7 @@
 
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
   (with-handling-pg-errors
-    (let (took-usec)
+    (let (took-usec retried)
       (multiple-value-bind (result count)
         (with-took-usec took-usec
           (block nil
@@ -135,12 +135,13 @@
                                                        query))))
                 (invalid-sql-statement-name (e)
                   ;; Retry if cached prepared statement is not available anymore
-                  (when (query-cached-p query)
+                  (when (and (query-cached-p query)
+                             (not retried))
                     (assert (eq conn (query-connection query)))
                     (setf (query-prepared query)
                           (prepare-query (connection-handle conn) (symbol-name (gensym "PREPARED-STATEMENT"))
                                          (query-sql query)))
-                    (setf (query-cached-p query) nil)
+                    (setf retried t)
                     (go retry))
                   (error e))))))
         (sql-log (query-sql query) params count took-usec)
