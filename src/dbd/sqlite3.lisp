@@ -81,7 +81,7 @@
   (let (took-ms)
     (handler-case
         (with-took-ms took-ms
-          (sqlite:execute-non-query (connection-handle conn) sql params))
+          (apply #'sqlite:execute-non-query (connection-handle conn) sql params))
       (sqlite-error (e)
         (if (eq (sqlite-error-code e) :error)
             (error 'dbi-programming-error
