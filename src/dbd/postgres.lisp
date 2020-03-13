@@ -142,7 +142,7 @@
 (defmethod fetch ((query dbd-postgres-query))
   (pop (query-results query)))
 
-(defmethod do-sql ((conn dbd-postgres-connection) sql &rest params)
+(defmethod do-sql ((conn dbd-postgres-connection) sql &optional params)
   (if params
       (progn
         (call-next-method)
