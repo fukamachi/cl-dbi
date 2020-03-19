@@ -52,9 +52,7 @@
 ;; Don't know. Why dbi:fetch-all does not work this way?
 (defun execute-and-fetch-all (conn sql &rest params)
   (fetch-all
-   (apply #'execute
-          (prepare conn sql)
-          params)))
+   (execute (prepare conn sql) params)))
 
 (deftest connect
   (ok (typep *db* 'dbi-connection)))
@@ -85,21 +83,21 @@
       (ok (equal (getf result :|name|) "matsuyama")))
     (ok (null (fetch result))))
   (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
-         (result (execute query nil)))
+         (result (execute query (list nil))))
     (ok (null (fetch result))))
 
   (ok (typep (execute (prepare *db* "INSERT INTO person (id, name) VALUES (3, 'snmsts')"))
              'dbi-query))
   (ok (eql (row-count *db*) 1))
   (let* ((query (prepare *db* "SELECT * FROM person WHERE name = ?"))
-         (result (execute query "snmsts")))
+         (result (execute query (list "snmsts"))))
     (ok (equal (getf (fetch result) :|name|) "snmsts"))))
 
 (deftest place-holder
   (let (query result)
     (setf query (prepare *db* "SELECT * FROM person WHERE name = ?"))
     (ok (typep query 'dbi-query))
-    (setf result (execute query "matsuyama"))
+    (setf result (execute query (list "matsuyama")))
     (ok (typep result 'dbi-query))
     (ok (typep (fetch result) '(non-nil property-list)))
     (ok (null (fetch result)))))

@@ -77,11 +77,11 @@
       (t (sql-log (query-sql query) params nil nil)))
     query))
 
-(defmethod do-sql ((conn dbd-sqlite3-connection) (sql string) &rest params)
+(defmethod do-sql ((conn dbd-sqlite3-connection) (sql string) &optional params)
   (let (took-usec)
     (handler-case
         (with-took-usec took-usec
-          (apply #'execute-non-query (connection-handle conn) sql params))
+          (apply #'sqlite:execute-non-query (connection-handle conn) sql params))
       (sqlite-error (e)
         (if (eq (sqlite-error-code e) :error)
             (error 'dbi-programming-error

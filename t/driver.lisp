@@ -57,10 +57,10 @@
         (ok (typep query2 '<dbi-query>)
             "prepare")
 
-        (ok (equal (funcall (query-prepared query) "cafe")
+        (ok (equal (funcall (query-prepared query) (list "cafe"))
                    "SELECT * FROM kyoto WHERE type = 'cafe'")
             "prepare-sql")
-        (ok (equal (funcall (query-prepared query2) "cafe")
+        (ok (equal (funcall (query-prepared query2) (list "cafe"))
                    "SELECT * FROM kyoto WHERE type = 'cafe'")
             "prepare-sql")))
 

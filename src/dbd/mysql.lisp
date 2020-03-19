@@ -87,7 +87,7 @@
          (result
            (with-error-handler conn
              (with-took-usec took-usec
-               (query (apply (query-prepared query) params)
+               (query (funcall (query-prepared query) params)
                       :database (connection-handle conn)
                       :store nil)))))
     (return-or-close (owner-pool result) result)

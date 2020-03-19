@@ -1,10 +1,10 @@
-# CL-DBI - Database independent interface for Common Lisp
+# CL-DBI - Database-independent interface for Common Lisp
 
 [![Build Status](https://github.com/fukamachi/cl-dbi/workflows/CI/badge.svg)](https://github.com/fukamachi/cl-dbi/actions?query=workflow%3ACI)
 
 ## Usage
 
-### Connecting and executing a query
+### Connecting - MYSQL
 
 ```common-lisp
 (defvar *connection*
@@ -12,26 +12,37 @@
                :database-name "test"
                :username "nobody"
                :password "1234"))
+```
 
+### Connecting - SQLite
+```common-lisp
+ (defvar *connection*
+  (dbi:connect :sqlite3
+               :database-name "/home/gt/test.sqlite3"))
+```
+
+### Executing a query
+
+```common-lisp
 (let* ((query (dbi:prepare *connection*
                            "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?"))
-       (query (dbi:execute query 0 "2011-11-01")))
+       (query (dbi:execute query (list 0 "2011-11-01"))))
   (loop for row = (dbi:fetch query)
         while row
         ;; process "row".
         ))
 
-;; Do it at once
+;; Do it all at once
 (dbi:fetch-all (dbi:execute (dbi:prepare *connection* "SELECT * FROM somewhere WHERE flag = ? OR updated_at > ?")
-                            0 "2011-11-01"))
+                            (list 0 "2011-11-01")))
 ```
 
-`dbi:do-sql` is another option which prepare and execute a single statement. It returns the number of rows affected. It's typically used for non-`SELECT` statements.
+`dbi:do-sql` is another option that prepares and executes a single statement. It returns the number of rows affected. It's typically used for non-`SELECT` statements.
 
 ```common-lisp
 (dbi:do-sql *connection*
             "INSERT INTO somewhere (flag, updated_at) VALUES (?, NOW())"
-            0)
+            (list 0))
 ;=> 1
 ```
 
@@ -48,13 +59,13 @@
 
 ### Connection pooling
 
-`dbi:connect-cached` returns a existing connection if the database is already connected. Since the cache will be created for each thread, it's safe to use in a multithread application.
+`dbi:connect-cached` returns a existing connection if the database is already connected. Since one cache will be created for each thread, it's safe to use in a multithread application.
 
 ## Description
 
-CL-DBI provides the same interface for multiple SQL databases. You need not learn the API of each database.
+CL-DBI provides a uniform interface for many SQL databases, so you need not learn a separate API for each database.
 
-This library is especially convenient when you want to use different databases in different environments. For example, you may use MySQL as a production database, but use SQLite3 on your development system. To switch database backends you need only change the arguments to `dbi:connect`.
+This library is especially convenient when you want to use different databases in different environments. For example, you moght use MySQL as a production database, but use SQLite3 on your development system. To switch database backends you need only change the arguments to `dbi:connect`.
 
 ## Databases
 
@@ -85,10 +96,10 @@ To load "cl-dbi":
 * disconnect [&lt;dbi-connection&gt;] =&gt; T or NIL
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * prepare-cached [conn sql] =&gt; &lt;dbi-query&gt;
-* execute [query &amp; params] =&gt; something
+* execute [query &amp;optional params] =&gt; something
 * fetch [result] =&gt; a row data as plist
 * fetch-all [result] =&gt; a list of all row data
-* do-sql [conn sql &amp; params]
+* do-sql [conn sql &amp;optional params]
 * list-all-drivers [] =&gt; (&lt;dbi-driver&gt; ..)
 * find-driver [driver-name] =&gt; &lt;dbi-driver&gt;
 * with-transaction [conn]
@@ -108,7 +119,7 @@ To load "cl-dbi":
 * prepare [conn sql] =&gt; &lt;dbi-query&gt;
 * prepare-cached [conn sql] =&gt; &lt;dbi-query&gt;
 * fetch-using-connection [conn result] =&gt; a row data as plist
-* do-sql [conn sql &amp; params]
+* do-sql [conn sql &amp;optional params]
 * execute-using-connection =&gt; something
 * escape-sql =&gt; string
 * begin-transaction [conn]
@@ -144,9 +155,9 @@ The hook function takes these 4 values:
 - Row count of the results (integer or null)
 - Took time in miliseconds (integer or null)
 
-The row count and its took time could be null if those values are not available for the driver in some reason.
+The row count and its execution time can be null, if those values are not available for the driver for some reason.
 
-`dbi:simple-sql-logger` is also provided for just printing those values to `*standard-output*`. It can be enabled with the following code:
+`dbi:simple-sql-logger` is also provided for printing those values directly to `*standard-output*`. It can be enabled as so:
 
 ```common-lisp
 (push #'dbi:simple-sql-logger dbi:*sql-execution-hooks*)

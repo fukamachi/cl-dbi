@@ -149,9 +149,9 @@ This method may be overrided by subclasses."
               (setf (query-cached-p query) t)
               query))))
 
-(defgeneric execute (query &rest params)
+(defgeneric execute (query &optional params)
   (:documentation "Execute `query` with `params` and return the results.")
-  (:method ((query dbi-query) &rest params)
+  (:method ((query dbi-query) &optional params)
     (execute-using-connection
      (query-connection query)
      query
@@ -174,15 +174,15 @@ This method may be overrided by subclasses."
     (error 'dbi-unimplemented-error
            :method-name 'fetch-using-connection)))
 
-(defgeneric do-sql (conn sql &rest params)
+(defgeneric do-sql (conn sql &optional params)
   (:documentation "Do preparation and execution at once.
 This method may be overrided by subclasses.")
-  (:method ((conn dbi-connection) (sql string) &rest params)
+  (:method ((conn dbi-connection) (sql string) &optional params)
     (let ((query (prepare conn sql)))
-      (unwind-protect (progn (apply #'execute query params)
+      (unwind-protect (progn (execute query params)
                              (query-row-count query))
         (free-query-resources query))))
-  (:method :around ((conn dbi-connection) sql &rest params)
+  (:method :around ((conn dbi-connection) sql &optional params)
     (declare (ignorable sql params))
     (let ((state (get-transaction-state conn)))
       (when state
@@ -435,12 +435,11 @@ For example, in case of MySQL and PostgreSQL, backslashes must be escaped by dou
                  (null "NULL")
                  (t (princ-to-string param)))))
       (let ((sql-parts (split-sequence #\? sql)))
-        (lambda (&rest params)
+        (lambda (params)
           (if params
               (with-output-to-string (out)
                 (loop for (part . rest) on sql-parts
-                      do
-                         (let ((param (pop params)))
+                      do (let ((param (pop params)))
                            (write-sequence
                             (if rest
                                 (concatenate 'string part (param-to-sql param))
