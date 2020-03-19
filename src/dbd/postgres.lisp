@@ -33,8 +33,8 @@
 (defclass/a dbd-postgres (dbi-driver) ())
 
 (defclass/a dbd-postgres-connection (dbi-connection)
-  ((%modified-row-count :type (or null fixnum)
-                        :initform nil)
+  ((%row-count :type (or null fixnum)
+               :initform nil)
    (%deallocation-queue :type list
                         :initform nil)))
 
@@ -113,46 +113,40 @@
                                (not (query-freed-p query)))
                       (push name (slot-value conn '%deallocation-queue)))))))))
 
+(def-row-reader plist-row-reader (fields)
+  (loop while (next-row)
+        collect (loop for field across fields
+                      collect (intern (field-name field) :keyword)
+                      collect (next-field field))))
+
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
   (with-handling-pg-errors
     (let (took-usec retried)
       (multiple-value-bind (result count)
-        (with-took-usec took-usec
-          (block nil
-            (tagbody retry
-              (handler-case
-                  (return (exec-prepared (connection-handle conn)
-                                         (slot-value query 'name)
-                                         params
-                                         ;; TODO: lazy fetching
-                                         (row-reader (fields)
-                                                     (let ((result
-                                                             (loop while (next-row)
-                                                                   collect (loop for field across fields
-                                                                                 collect (intern (field-name field) :keyword)
-                                                                                 collect (next-field field)))))
-                                                       (setf (query-results query) result)
-                                                       query))))
-                (invalid-sql-statement-name (e)
-                  ;; Retry if cached prepared statement is not available anymore
-                  (when (and (query-cached-p query)
-                             (not retried))
-                    (assert (eq conn (query-connection query)))
-                    (setf (query-prepared query)
-                          (prepare-query (connection-handle conn) (symbol-name (gensym "PREPARED-STATEMENT"))
-                                         (query-sql query)))
-                    (setf retried t)
-                    (go retry))
-                  (error e))))))
+          (with-took-usec took-usec
+            (block nil
+              (tagbody retry
+                (handler-case
+                    (return (exec-prepared (connection-handle conn)
+                                           (slot-value query 'name)
+                                           params
+                                           ;; TODO: lazy fetching
+                                           'plist-row-reader))
+                  (invalid-sql-statement-name (e)
+                    ;; Retry if cached prepared statement is not available anymore
+                    (when (and (query-cached-p query)
+                               (not retried))
+                      (assert (eq conn (query-connection query)))
+                      (setf (query-prepared query)
+                            (prepare-query (connection-handle conn) (symbol-name (gensym "PREPARED-STATEMENT"))
+                                           (query-sql query)))
+                      (setf retried t)
+                      (go retry))
+                    (error e))))))
         (sql-log (query-sql query) params count took-usec)
-        (or result
-            (progn
-              (setf (slot-value conn '%modified-row-count) count)
-              (make-instance 'dbd-postgres-query
-                             :connection conn
-                             :sql (query-sql query)
-                             :results (list count)
-                             :row-count count)))))))
+        (setf (query-results query) result)
+        (setf (slot-value conn '%row-count) count)
+        query))))
 
 (defmethod fetch ((query dbd-postgres-query))
   (pop (query-results query)))
@@ -206,4 +200,4 @@
     (cancel-finalization query)))
 
 (defmethod row-count ((conn dbd-postgres-connection))
-  (slot-value conn '%modified-row-count))
+  (slot-value conn '%row-count))
