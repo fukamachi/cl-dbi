@@ -46,6 +46,15 @@
 ;=> 1
 ```
 
+**Breaking change warning**: cl-dbi prior to march 2020 did not pass arguments with `list`:
+
+    (dbi:execute query 0 "2011-11-01")
+    ;; is now:
+    (dbi:execute query (list 0 "2011-11-01")
+
+The version in Quicklisp 2020-03-25 is incompatible with older code.
+
+
 ### Using `dbi:with-connection` to ensure connections are closed
 
 ```common-lisp
@@ -247,6 +256,22 @@ and run unittests agains them:
                                  :username "root"
                                  :password "cl-dbi"
                                  :test-name 'select-after-commit)
+
+## Changelog
+
+### 2020-03
+
+- **breaking change**: `dbi:execute` now takes its parameters as a
+  list (to avoid the call arguments limit, see [!61](https://github.com/fukamachi/cl-dbi/pull/61):
+
+```common-lisp
+(dbi:execute query 0 "2011-11-01")
+;; is now:
+(dbi:execute query (list 0 "2020-03-13")
+```
+
+The version in Quicklisp 2020-03-25 is incompatible with older code.
+
 
 ## Author
 
