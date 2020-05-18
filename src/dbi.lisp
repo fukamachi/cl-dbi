@@ -108,7 +108,7 @@
 (defvar *threads-connection-pool* (make-cache-pool :cleanup-fn #'disconnect))
 
 (defparameter *connection-cache-seconds*
-  (* 60 60 24))
+  (* 60 60 24 internal-time-units-per-second))
 
 (defun connect-cached (&rest connect-args)
   (let* ((pool *threads-connection-pool*)
@@ -116,8 +116,8 @@
     (if (and conn
              (ping conn))
         (progn
-          (when (< (get-internal-real-time)
-                   (+ (connection-established-at conn) *connection-cache-seconds*))
+          (when (< (+ (connection-established-at conn) *connection-cache-seconds*)
+                   (get-internal-real-time))
             (disconnect conn)
             (setf conn (apply #'connect connect-args))
             (setf (get-object pool connect-args) conn))
