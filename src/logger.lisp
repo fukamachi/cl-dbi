@@ -19,9 +19,9 @@
                 row-count
                 (/ took-usec 1000d0))))
 
-(defun sql-log (sql params row-count took-ms)
+(defun sql-log (sql params row-count took-usec)
   (dolist (hook-fn *sql-execution-hooks*)
-    (funcall hook-fn sql params row-count took-ms))
+    (funcall hook-fn sql params row-count took-usec))
   (values))
 
 #+sbcl
