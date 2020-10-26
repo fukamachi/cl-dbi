@@ -13,6 +13,10 @@
                 #:disconnect
                 #:prepare
                 #:prepare-cached
+                #:query-prepared
+                #:query-connection
+                #:query-sql
+                #:query-cached-p
                 #:execute
                 #:fetch
                 #:fetch-all
@@ -40,6 +44,10 @@
            #:disconnect
            #:prepare
            #:prepare-cached
+           #:query-prepared
+           #:query-connection
+           #:query-sql
+           #:query-cached-p
            #:execute
            #:fetch
            #:fetch-all
