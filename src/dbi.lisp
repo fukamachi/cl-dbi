@@ -89,6 +89,8 @@
            #:<dbi-notsupported-error>
            #:<dbi-already-commited-error>
            #:<dbi-already-rolled-back-error>
+           #:database-error-message
+           #:database-error-code
 
            ;; logger
            #:*sql-execution-hooks*

@@ -26,7 +26,9 @@
            #:<dbi-programming-error>
            #:<dbi-notsupported-error>
            #:<dbi-already-commited-error>
-           #:<dbi-already-rolled-back-error>))
+           #:<dbi-already-rolled-back-error>
+           #:database-error-message
+           #:database-error-code))
 (in-package #:dbi.error)
 
 (define-condition/a dbi-error (simple-error) ()
@@ -50,8 +52,10 @@ database itself."))
              (slot-value condition 'method-name)))))
 
 (define-condition/a dbi-database-error (dbi-error)
-  ((message :initarg :message)
-   (error-code :initarg :error-code))
+  ((message :initarg :message
+            :reader database-error-message)
+   (error-code :initarg :error-code
+               :reader database-error-code))
   (:documentation "Exception for errors related to the database.")
   (:report
    (lambda (condition stream)

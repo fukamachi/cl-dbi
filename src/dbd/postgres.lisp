@@ -12,13 +12,14 @@
   (:import-from #:cl-postgres-error
                 #:database-error
                 #:syntax-error-or-access-violation
-                #:database-error-message
-                #:database-error-code
                 #:invalid-sql-statement-name
 
                 #:admin-shutdown
                 #:crash-shutdown
                 #:cannot-connect-now)
+  (:shadowing-import-from #:cl-postgres-error
+                          #:database-error-message
+                          #:database-error-code)
   (:import-from #:trivial-garbage
                 #:finalize
                 #:cancel-finalization)
