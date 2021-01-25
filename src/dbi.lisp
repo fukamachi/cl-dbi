@@ -1,5 +1,6 @@
 (defpackage #:dbi
   (:use #:cl
+        #:dbi.cache
         #:dbi.error)
   (:nicknames #:cl-dbi)
   (:import-from #:dbi.driver
@@ -7,9 +8,15 @@
                 #:find-driver
                 #:connection-driver-type
                 #:connection-database-name
+                #:connection-established-at
                 #:make-connection
                 #:disconnect
                 #:prepare
+                #:prepare-cached
+                #:query-prepared
+                #:query-connection
+                #:query-sql
+                #:query-cached-p
                 #:execute
                 #:fetch
                 #:fetch-all
@@ -30,15 +37,17 @@
   (:import-from #:dbi.logger
                 #:*sql-execution-hooks*
                 #:simple-sql-logger)
-  (:import-from #:bordeaux-threads
-                #:current-thread
-                #:thread-alive-p)
   (:export #:list-all-drivers
            #:find-driver
            #:connection-driver-type
            #:connection-database-name
            #:disconnect
            #:prepare
+           #:prepare-cached
+           #:query-prepared
+           #:query-connection
+           #:query-sql
+           #:query-cached-p
            #:execute
            #:fetch
            #:fetch-all
@@ -80,6 +89,8 @@
            #:<dbi-notsupported-error>
            #:<dbi-already-commited-error>
            #:<dbi-already-rolled-back-error>
+           #:database-error-message
+           #:database-error-code
 
            ;; logger
            #:*sql-execution-hooks*
@@ -104,53 +115,27 @@
 
     (apply #'make-connection (make-instance driver) params)))
 
-(defun make-connection-pool ()
-  (make-hash-table :test 'equal))
+(defvar *threads-connection-pool* (make-cache-pool :cleanup-fn #'disconnect))
 
-#+thread-support
-(defun make-threads-connection-pool ()
-  (let ((pool (make-hash-table :test 'eq)))
-    (setf (gethash (bt:current-thread) pool) (make-connection-pool))
-    pool))
-#-thread-support
-(defun make-threads-connection-pool ()
-  (make-connection-pool))
-
-(defvar *threads-connection-pool* (make-threads-connection-pool))
-
-(defun get-connection-pool ()
-  (or (gethash (bt:current-thread) *threads-connection-pool*)
-      (setf (gethash (bt:current-thread) *threads-connection-pool*)
-            (make-connection-pool))))
+(defparameter *connection-cache-seconds*
+  (* 60 60 24 internal-time-units-per-second))
 
 (defun connect-cached (&rest connect-args)
-  (let* ((pool (get-connection-pool))
-         (conn (gethash connect-args pool)))
-    (cond
-      ((null conn)
-       (cleanup-connection-pool)
-       (setf (gethash connect-args pool)
-             (apply #'connect connect-args)))
-      ((not (ping conn))
-       (disconnect conn)
-       (remhash connect-args pool)
-       (cleanup-connection-pool)
-       (setf (gethash connect-args pool)
-             (apply #'connect connect-args)))
-      (t conn))))
-
-(defvar *connection-pool-cleanup-lock*
-  (bt:make-lock "connection-pool-cleanup-lock"))
-(defun cleanup-connection-pool ()
-  (bt:with-lock-held (*connection-pool-cleanup-lock*)
-    (maphash (lambda (thread pool)
-               (unless (bt:thread-alive-p thread)
-                 (maphash (lambda (args conn)
-                            (declare (ignore args))
-                            (disconnect conn))
-                          pool)
-                 (remhash thread *threads-connection-pool*)))
-             *threads-connection-pool*)))
+  (let* ((pool *threads-connection-pool*)
+         (conn (get-object pool connect-args)))
+    (if (and conn
+             (ping conn))
+        (progn
+          (when (< (+ (connection-established-at conn) *connection-cache-seconds*)
+                   (get-internal-real-time))
+            (disconnect conn)
+            (setf conn (apply #'connect connect-args))
+            (setf (get-object pool connect-args) conn))
+          conn)
+        (prog1
+            (setf (get-object pool connect-args)
+                  (apply #'connect connect-args))
+          (cleanup-cache-pool pool)))))
 
 (defmacro with-retrying (&body body)
   (let ((retrying (gensym))

@@ -12,12 +12,14 @@
   (:import-from #:cl-postgres-error
                 #:database-error
                 #:syntax-error-or-access-violation
-                #:database-error-message
-                #:database-error-code
+                #:invalid-sql-statement-name
 
                 #:admin-shutdown
                 #:crash-shutdown
                 #:cannot-connect-now)
+  (:shadowing-import-from #:cl-postgres-error
+                          #:database-error-message
+                          #:database-error-code)
   (:import-from #:trivial-garbage
                 #:finalize
                 #:cancel-finalization)
@@ -114,22 +116,36 @@
 
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
   (with-handling-pg-errors
-    (let (took-ms)
+    (let (took-usec retried)
       (multiple-value-bind (result count)
-          (with-took-ms took-ms
-            (exec-prepared (connection-handle conn)
-                           (slot-value query 'name)
-                           params
-                           ;; TODO: lazy fetching
-                           (row-reader (fields)
-                             (let ((result
-                                     (loop while (next-row)
-                                           collect (loop for field across fields
-                                                         collect (intern (field-name field) :keyword)
-                                                         collect (next-field field)))))
-                               (setf (query-results query) result)
-                               query))))
-        (sql-log (query-sql query) params count took-ms)
+        (with-took-usec took-usec
+          (block nil
+            (tagbody retry
+              (handler-case
+                  (return (exec-prepared (connection-handle conn)
+                                         (slot-value query 'name)
+                                         params
+                                         ;; TODO: lazy fetching
+                                         (row-reader (fields)
+                                                     (let ((result
+                                                             (loop while (next-row)
+                                                                   collect (loop for field across fields
+                                                                                 collect (intern (field-name field) :keyword)
+                                                                                 collect (next-field field)))))
+                                                       (setf (query-results query) result)
+                                                       query))))
+                (invalid-sql-statement-name (e)
+                  ;; Retry if cached prepared statement is not available anymore
+                  (when (and (query-cached-p query)
+                             (not retried))
+                    (assert (eq conn (query-connection query)))
+                    (setf (query-prepared query)
+                          (prepare-query (connection-handle conn) (symbol-name (gensym "PREPARED-STATEMENT"))
+                                         (query-sql query)))
+                    (setf retried t)
+                    (go retry))
+                  (error e))))))
+        (sql-log (query-sql query) params count took-usec)
         (or result
             (progn
               (setf (slot-value conn '%modified-row-count) count)
@@ -148,13 +164,13 @@
         (call-next-method)
         (row-count conn))
       (with-handling-pg-errors
-        (let (took-ms)
+        (let (took-usec)
           (let ((row-count
                   (or (nth-value 1
-                                 (with-took-ms took-ms
+                                 (with-took-usec took-usec
                                    (exec-query (connection-handle conn) sql)))
                       0)))
-            (sql-log sql params row-count took-ms)
+            (sql-log sql params row-count took-usec)
             row-count)))))
 
 (defmethod disconnect ((conn dbd-postgres-connection))

@@ -48,17 +48,24 @@
     (ok (typep conn2 '<dbi-connection>)
         "connect")
 
-    (let ((query (prepare conn "SELECT * FROM kyoto WHERE type = ?"))
-          (query2 (prepare conn2 "SELECT * FROM kyoto WHERE type = ?")))
+    (testing "prepare"
+      (let ((query (prepare conn "SELECT * FROM kyoto WHERE type = ?"))
+            (query2 (prepare conn2 "SELECT * FROM kyoto WHERE type = ?")))
 
-      (ok (typep query 'dbi-query)
-          "prepare")
-      (ok (typep query2 '<dbi-query>)
-          "prepare")
+        (ok (typep query 'dbi-query)
+            "prepare")
+        (ok (typep query2 '<dbi-query>)
+            "prepare")
 
-      (ok (equal (funcall (query-prepared query) (list "cafe"))
-                 "SELECT * FROM kyoto WHERE type = 'cafe'")
-          "prepare-sql")
-      (ok (equal (funcall (query-prepared query2) (list "cafe"))
-                 "SELECT * FROM kyoto WHERE type = 'cafe'")
-          "prepare-sql"))))
+        (ok (equal (funcall (query-prepared query) (list "cafe"))
+                   "SELECT * FROM kyoto WHERE type = 'cafe'")
+            "prepare-sql")
+        (ok (equal (funcall (query-prepared query2) (list "cafe"))
+                   "SELECT * FROM kyoto WHERE type = 'cafe'")
+            "prepare-sql")))
+
+    (testing "prepare-cached"
+      (let ((query3 (prepare-cached conn "SELECT * FROM kyoto WHERE type = ?")))
+        (ok (typep query3 'dbi-query))
+        (ok (eq query3 (prepare-cached conn "SELECT * FROM kyoto WHERE type = ?")))
+        (ng (eq query3 (prepare-cached conn2 "SELECT * FROM kyoto WHERE type = ?")))))))
