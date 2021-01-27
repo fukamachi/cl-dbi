@@ -74,7 +74,7 @@ The version in Quicklisp 2020-03-25 is incompatible with older code.
 
 CL-DBI provides a uniform interface for many SQL databases, so you need not learn a separate API for each database.
 
-This library is especially convenient when you want to use different databases in different environments. For example, you moght use MySQL as a production database, but use SQLite3 on your development system. To switch database backends you need only change the arguments to `dbi:connect`.
+This library is especially convenient when you want to use different databases in different environments. For example, you might use MySQL as a production database, but use SQLite3 on your development system. To switch database backends you need only change the arguments to `dbi:connect`.
 
 ## Databases
 
