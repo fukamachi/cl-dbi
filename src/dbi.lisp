@@ -137,28 +137,27 @@
                   (apply #'connect connect-args))
           (cleanup-cache-pool pool)))))
 
-(defmacro with-retrying (&body body)
+(defmacro with-autoload-on-missing (&body body)
   (let ((retrying (gensym))
-        (e (gensym))
-        (restart (gensym)))
+        (e (gensym)))
     `(let ((,retrying (make-hash-table :test 'equal)))
        (handler-bind ((asdf:missing-component
                         (lambda (,e)
                           (unless (gethash (asdf::missing-requires ,e) ,retrying)
-                            (let ((,restart (find-restart 'asdf:retry)))
-                              (when ,restart
-                                (setf (gethash (asdf::missing-requires ,e) ,retrying) t)
-                                (asdf:clear-configuration)
-                                (invoke-restart ,restart)))))))
+                            (setf (gethash (asdf::missing-requires ,e) ,retrying) t)
+                            (when (find :quicklisp *features*)
+                              (uiop:symbol-call '#:ql-dist '#:ensure-installed
+                                                (uiop:symbol-call '#:ql-dist '#:find-system
+                                                                  (asdf::missing-requires ,e)))
+                              (invoke-restart (find-restart 'asdf:retry ,e)))))))
          ,@body))))
 
 (defun load-driver (driver-name)
   (let ((driver-system (intern (format nil "DBD-~A" driver-name) :keyword)))
-    #+quicklisp
-    (with-retrying
-      (ql:quickload driver-system :verbose nil :silent t))
-    #-quicklisp
-    (asdf:load-system driver-system :verbose nil)))
+    (with-autoload-on-missing
+      (let ((*standard-output* (make-broadcast-stream))
+            (*error-output* (make-broadcast-stream)))
+        (asdf:load-system driver-system :verbose nil)))))
 
 
 (defmacro with-connection ((conn-sym &rest rest) &body body)
