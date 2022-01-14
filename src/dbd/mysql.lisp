@@ -19,6 +19,9 @@
                 #:owner-pool
                 #:+server-gone-error+
                 #:+server-lost+)
+  (:import-from #:trivial-garbage
+                #:finalize
+                #:cancel-finalization)
   (:export #:dbd-mysql
            #:dbd-mysql-connection
            #:dbd-mysql-query
@@ -46,7 +49,9 @@
 
 (defclass dbd-mysql-query (dbi-query)
   ((store :initarg :store :initform t
-          :accessor mysql-use-store)))
+          :accessor mysql-use-store)
+   (freedp :initform nil
+           :accessor query-freed-p)))
 
 (defstruct (mysql-result-list (:constructor make-mysql-result-list (&optional result-set row-count)))
   (result-set nil :type list)
@@ -99,11 +104,17 @@
        (multiple-value-bind (rows count)
            (fetch-all-rows result)
          (mysql-free-result (result-set result))
+         (setf (query-freed-p query) t)
          (sql-log (query-sql query) params count took-usec)
          (setf result (make-mysql-result-list rows count))
          (setf (query-row-count query) count)))
       (t
-       (sql-log (query-sql query) params nil took-usec)))
+       (sql-log (query-sql query) params nil took-usec)
+       (finalize result
+                 (lambda ()
+                   (unless (query-freed-p query)
+                     (mysql-free-result (result-set result))
+                     (setf (query-freed-p query) t))))))
     (setf (query-results query) result)
     query))
 
@@ -135,6 +146,13 @@
                                (= (mysql-error-errno e) +server-lost+))
                        (return-from ping nil)))))
     (cl-mysql:ping :database (connection-handle conn))))
+
+(defmethod free-query-resources ((query dbd-mysql-query))
+  (unless (query-freed-p query)
+    (let ((result (query-results query)))
+      (mysql-free-result (result-set result))
+      (setf (query-freed-p query) t)
+      (cancel-finalization result))))
 
 (defmethod row-count ((conn dbd-mysql-connection))
   (second (fetch (execute (prepare conn "SELECT ROW_COUNT()" :store T)))))
