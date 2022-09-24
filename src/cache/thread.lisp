@@ -17,8 +17,9 @@
   cleanup-fn)
 
 (defun steal-cache-table (pool &optional (thread (bt:current-thread)))
-  (or (gethash thread (cache-pool-hash pool))
-      (setf (gethash thread (cache-pool-hash pool)) (make-cache-table))))
+  (bt:with-lock-held ((cache-pool-lock pool))
+    (or (gethash thread (cache-pool-hash pool))
+        (setf (gethash thread (cache-pool-hash pool)) (make-cache-table)))))
 
 (defun get-object (pool key)
   (let ((cache (steal-cache-table pool)))
