@@ -192,7 +192,9 @@
              (progn
                (cl-postgres::send-parse (cl-postgres::connection-socket handle)
                                         (symbol-name (gensym "PING"))
-                                        "")
+                                        ""
+                                        nil
+                                        nil)
                t))
       ((or cl-postgres-error:admin-shutdown
            cl-postgres-error:crash-shutdown
