@@ -90,7 +90,9 @@ This method must be implemented in each drivers.")
   (:method ((conn dbi-connection))
     (declare (ignore conn))
     (error 'dbi-unimplemented-error
-           :method-name 'disconnect)))
+           :method-name 'disconnect))
+  (:method :after ((conn dbi-connection))
+    (setf (connection-query-cache conn) (make-hash-table :test 'equal))))
 
 (defun find-driver (driver-name)
   "Find a driver class named as `driver-name`.
