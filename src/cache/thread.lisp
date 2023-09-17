@@ -13,11 +13,11 @@
 
 (defstruct cache-pool
   (hash (make-hash-table :test 'eq))
-  (lock (bt:make-lock "CACHE-POOL-LOCK"))
+  (lock (bt2:make-lock :name "CACHE-POOL-LOCK"))
   cleanup-fn)
 
-(defun steal-cache-table (pool &optional (thread (bt:current-thread)))
-  (bt:with-lock-held ((cache-pool-lock pool))
+(defun steal-cache-table (pool &optional (thread (bt2:current-thread)))
+  (bt2:with-lock-held ((cache-pool-lock pool))
     (or (gethash thread (cache-pool-hash pool))
         (setf (gethash thread (cache-pool-hash pool)) (make-cache-table)))))
 
@@ -35,9 +35,9 @@
 
 (defun cleanup-cache-pool (pool)
   (let ((cleanup-fn (cache-pool-cleanup-fn pool)))
-    (bt:with-lock-held ((cache-pool-lock pool))
+    (bt2:with-lock-held ((cache-pool-lock pool))
       (maphash (lambda (thread cache)
-                 (unless (bt:thread-alive-p thread)
+                 (unless (bt2:thread-alive-p thread)
                    (when cleanup-fn
                      (maphash (lambda (_ conn)
                                 (declare (ignore _))
