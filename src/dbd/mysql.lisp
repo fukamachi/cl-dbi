@@ -31,7 +31,7 @@
 
 (defclass/a dbd-mysql-connection (dbi-connection) ())
 
-(defmethod make-connection ((driver dbd-mysql) &key host database-name username password port socket client-flag)
+(defmethod make-connection ((driver dbd-mysql) &key host database-name username password port socket client-flag ssl-ca)
   (make-instance 'dbd-mysql-connection
      :database-name database-name
      :handle (connect :host host
@@ -40,7 +40,8 @@
                       :password password
                       :port port
                       :socket socket
-                      :client-flag client-flag)))
+                      :client-flag client-flag
+                      :ssl-ca ssl-ca)))
 
 (defclass dbd-mysql-query (dbi-query)
   ((store :initarg :store :initform t
