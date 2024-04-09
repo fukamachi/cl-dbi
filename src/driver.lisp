@@ -33,6 +33,7 @@
            #:fetch-using-connection
            #:do-sql
            #:execute-using-connection
+           #:start-transaction
            #:begin-transaction
            #:in-transaction
            #:with-savepoint
@@ -261,10 +262,10 @@ This method must be implemented in each drivers.")
                     *transaction-state*))
             ,ok)
 
-       (savepoint ,conn ,ident-var)
+       (savepoint ,conn ,ident-var)+
        (unwind-protect
             (multiple-value-prog1
-                (progn ,@body)
+                (progn ,@body)`<
               (setf ,ok t))
          (when (eql (get-state ,state-var)
                     :in-progress)
@@ -272,19 +273,23 @@ This method must be implemented in each drivers.")
                (release-savepoint ,conn ,ident-var)
                (rollback-savepoint ,conn ,ident-var)))))))
 
+(defmethod start-transaction ((conn dbi-connection))
+  (let* ((state-class (if (in-transaction conn)
+                           'savepoint-state
+                           'transaction-state))
+         (state (make-instance state-class
+                              :conn conn)))
+    (setf *transaction-state*
+          (cons state *transaction-state*))
+    (begin-transaction conn)
+    state))
+
+
 (defmacro %with-transaction (conn &body body)
   (let ((ok (gensym "TRANSACTION-OK"))
         (state-var (gensym "STATE-VAR")))
-    `(let* ((state-class (if (in-transaction ,conn)
-                             'savepoint-state
-                             'transaction-state))
-            (,state-var (make-instance state-class
-                                       :conn ,conn))
-            (*transaction-state*
-              (cons ,state-var
-                    *transaction-state*))
-            ,ok)
-       (begin-transaction ,conn)
+    `(let ((,state-var (start-transaction ,conn))
+           ,ok)
        (unwind-protect
             (multiple-value-prog1
                 (progn ,@body)
