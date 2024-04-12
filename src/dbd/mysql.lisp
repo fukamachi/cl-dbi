@@ -12,6 +12,8 @@
   (:import-from #:cl-mysql-system
                 #:mysql-error
                 #:mysql-error-errno
+                #:mysql-free-result
+                #:result-set
                 #:connect-to-server
                 #:return-or-close
                 #:owner-pool
@@ -97,6 +99,7 @@
       ((mysql-use-store query)
        (multiple-value-bind (rows count)
            (fetch-all-rows result)
+         (mysql-free-result (result-set result))
          (sql-log (query-sql query) params count took-usec)
          (setf result (make-mysql-result-list rows count))
          (setf (query-row-count query) count)))
