@@ -179,7 +179,8 @@
 (defmethod begin-transaction ((conn dbd-postgres-connection))
   (do-sql conn "BEGIN"))
 
-(defmethod commit ((conn dbd-postgres-connection))
+(defmethod commit ((conn dbd-postgres-connection) &optional state)
+  (declare (ignore state))
   (do-sql conn "COMMIT"))
 
 (defmethod rollback ((conn dbd-postgres-connection))

@@ -34,6 +34,7 @@
            #:do-sql
            #:execute-using-connection
            #:start-transaction
+           #:end-transaction
            #:begin-transaction
            #:in-transaction
            #:with-savepoint
@@ -246,6 +247,13 @@ This method must be implemented in each drivers.")
         :test #'eql
         :key #'get-conn))
 
+(defun remove-transaction-state (conn)
+  "Remove the transaction state object from the stack."
+  (setf *transaction-state*
+        (remove conn *transaction-state*
+                :test #'eql
+                :key #'get-conn)))
+
 (defun in-transaction (conn)
   "Returns True if called inside a transaction block."
   (not (null (get-transaction-state conn))))
@@ -273,23 +281,20 @@ This method must be implemented in each drivers.")
                (release-savepoint ,conn ,ident-var)
                (rollback-savepoint ,conn ,ident-var)))))))
 
-(defmethod start-transaction ((conn dbi-connection))
-  (let* ((state-class (if (in-transaction conn)
-                           'savepoint-state
-                           'transaction-state))
-         (state (make-instance state-class
-                              :conn conn)))
-    (setf *transaction-state*
-          (cons state *transaction-state*))
-    (begin-transaction conn)
-    state))
-
 
 (defmacro %with-transaction (conn &body body)
   (let ((ok (gensym "TRANSACTION-OK"))
         (state-var (gensym "STATE-VAR")))
-    `(let ((,state-var (start-transaction ,conn))
+    `(let* ((state-class (if (in-transaction ,conn)
+                             'savepoint-state
+                             'transaction-state))
+            (,state-var (make-instance state-class
+                                       :conn ,conn))
+             (*transaction-state*
+               (cons ,state-var
+                     *transaction-state*))
            ,ok)
+       (begin-transaction ,conn)
        (unwind-protect
             (multiple-value-prog1
                 (progn ,@body)
@@ -308,6 +313,21 @@ This method must be implemented in each drivers.")
            (with-savepoint ,conn-var ,@body)
            (%with-transaction ,conn-var ,@body)))))
 
+(defmethod start-transaction (conn)
+  (let* ((state-class (if (in-transaction conn)
+                          'savepoint-state
+                          'transaction-state))
+         (state-var (make-instance state-class
+                                  :conn conn))
+         )
+    (setf *transaction-state*
+          (cons state-var
+                *transaction-state*))
+    (begin-transaction conn)
+    state-var))
+
+(defmethod end-transaction (conn)
+  (remove-transaction-state conn))
 
 (defun assert-transaction-is-in-progress (transaction-state)
   (case (get-state transaction-state)
@@ -316,14 +336,14 @@ This method must be implemented in each drivers.")
     (:rolled-back
      (error 'dbi.error:dbi-already-rolled-back-error))))
 
-(defgeneric commit (conn)
+(defgeneric commit (conn &optional state)
   (:documentation "Commit changes and end the current transaction.")
-  (:method ((conn dbi-connection))
-    (declare (ignore conn))
+  (:method ((conn dbi-connection) &optional state)
+    (declare (ignore conn state))
     (error 'dbi-notsupported-error
            :method-name 'commit))
-  (:method :around ((conn dbi-connection))
-    (let ((state (get-transaction-state conn)))
+  (:method :around ((conn dbi-connection) &optional passed-state)
+    (let ((state (if passed-state passed-state (get-transaction-state conn))))
       (when state
         (assert-transaction-is-in-progress state)
 
@@ -337,14 +357,14 @@ This method must be implemented in each drivers.")
           (setf (get-state state)
                 :commited))))))
 
-(defgeneric rollback (conn)
+(defgeneric rollback (conn &optional state)
   (:documentation "Rollback all changes and end the current transaction.")
-  (:method ((conn dbi-connection))
-    (declare (ignore conn))
+  (:method ((conn dbi-connection) &optional state)
+    (declare (ignore conn state))
     (error 'dbi-notsupported-error
            :method-name 'rollback))
-  (:method :around ((conn dbi-connection))
-    (let ((state (get-transaction-state conn)))
+  (:method :around ((conn dbi-connection) &optional passed-state)
+    (let ((state (if passed-state passed-state (get-transaction-state conn))))
       (when state
         (assert-transaction-is-in-progress state)
 
@@ -387,7 +407,7 @@ This method must be implemented in each drivers.")
 
 (defgeneric release-savepoint (conn &optional identifier)
   (:method ((conn dbi-connection) &optional identifier)
-    (do-sql conn (format nil "RELEASE ~A" identifier)))
+    (do-sql conn (format nil "RELEASE SAVEPOINT ~A" identifier)))
 
   (:method :around ((conn dbi-connection) &optional identifier)
     (finalize-savepoint :commited

@@ -120,10 +120,12 @@
 (defmethod begin-transaction ((conn dbd-mysql-connection))
   (do-sql conn "START TRANSACTION"))
 
-(defmethod commit ((conn dbd-mysql-connection))
+(defmethod commit ((conn dbd-mysql-connection) &optional state)
+  (declare (ignore state))
   (do-sql conn "COMMIT"))
 
-(defmethod rollback ((conn dbd-mysql-connection))
+(defmethod rollback ((conn dbd-mysql-connection) &optional state)
+  (declare (ignore state))
   (do-sql conn "ROLLBACK"))
 
 (defmethod ping ((conn dbd-mysql-connection))
