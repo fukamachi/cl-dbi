@@ -33,6 +33,7 @@
            #:fetch-using-connection
            #:do-sql
            #:execute-using-connection
+           #:clear-transaction-state
            #:start-transaction
            #:end-transaction
            #:begin-transaction
@@ -254,6 +255,16 @@ This method must be implemented in each drivers.")
                 :test #'eql
                 :key #'get-conn)))
 
+(defun clear-transaction-state (&optional force)
+  (if force
+        (setf *transaction-state* nil)
+        (setf *transaction-state*
+                (remove-if (lambda (state)
+                                 (not (eql (get-state state)
+                                     :in-progress)))
+                             *transaction-state*))))
+
+
 (defun in-transaction (conn)
   "Returns True if called inside a transaction block."
   (not (null (get-transaction-state conn))))
@@ -336,14 +347,14 @@ This method must be implemented in each drivers.")
     (:rolled-back
      (error 'dbi.error:dbi-already-rolled-back-error))))
 
-(defgeneric commit (conn &optional state)
+(defgeneric commit (conn)
   (:documentation "Commit changes and end the current transaction.")
-  (:method ((conn dbi-connection) &optional state)
+  (:method ((conn dbi-connection))
     (declare (ignore conn state))
     (error 'dbi-notsupported-error
            :method-name 'commit))
-  (:method :around ((conn dbi-connection) &optional passed-state)
-    (let ((state (if passed-state passed-state (get-transaction-state conn))))
+  (:method :around ((conn dbi-connection))
+    (let ((state (get-transaction-state conn)))
       (when state
         (assert-transaction-is-in-progress state)
 
@@ -357,14 +368,14 @@ This method must be implemented in each drivers.")
           (setf (get-state state)
                 :commited))))))
 
-(defgeneric rollback (conn &optional state)
+(defgeneric rollback (conn)
   (:documentation "Rollback all changes and end the current transaction.")
-  (:method ((conn dbi-connection) &optional state)
+  (:method ((conn dbi-connection))
     (declare (ignore conn state))
     (error 'dbi-notsupported-error
            :method-name 'rollback))
-  (:method :around ((conn dbi-connection) &optional passed-state)
-    (let ((state (if passed-state passed-state (get-transaction-state conn))))
+  (:method :around ((conn dbi-connection))
+    (let ((state (get-transaction-state conn)))
       (when state
         (assert-transaction-is-in-progress state)
 
