@@ -55,13 +55,15 @@
                           :error-code (sqlite-error-code e)))))))
     query))
 
-(defmethod execute-using-connection ((conn dbd-sqlite3-connection) (query dbd-sqlite3-query) params)
+(defmethod execute-using-connection ((conn dbd-sqlite3-connection) (query dbd-sqlite3-query) params &optional format)
   (let ((prepared (query-prepared query)))
     (reset-statement prepared)
     (let ((count 0))
       (dolist (param params)
         (bind-parameter prepared (incf count) param)))
     (slot-makunbound query 'dbi.driver::results)
+    (when format
+      (setf (query-row-format query) format))
     (cond
       ((sqlite3-use-store query)
        (setf (query-results query)
@@ -104,10 +106,26 @@
                   (declare (ignore e))
                   (finalize-statement prepared)
                   nil))
-          (loop for column in (statement-column-names prepared)
-                for i from 0
-                append (list (intern column :keyword)
-                             (statement-column-value prepared i)))))))
+          (ecase (query-row-format query)
+            (:plist
+             (loop for column in (statement-column-names prepared)
+                   for i from 0
+                   collect (intern column :keyword)
+                   collect (statement-column-value prepared i)))
+            (:alist
+             (loop for column in (statement-column-names prepared)
+                   for i from 0
+                   collect (cons column (statement-column-value prepared i))))
+            (:hash-table
+             (let ((hash (make-hash-table :test 'equal)))
+               (loop for column in (statement-column-names prepared)
+                     for i from 0
+                     do (setf (gethash column hash)
+                              (statement-column-value prepared i)))
+               hash))
+            (:values
+             (loop for i from 0
+                   collect (statement-column-value prepared i))))))))
 
 (defmethod disconnect ((conn dbd-sqlite3-connection))
   (when (slot-boundp (connection-handle conn) 'sqlite::handle)

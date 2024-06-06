@@ -24,6 +24,7 @@
            #:query-prepared
            #:query-results
            #:query-row-count
+           #:query-row-format
            #:query-cached-p
            #:prepare
            #:prepare-cached
@@ -128,6 +129,10 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
               :initarg :row-count
               :initform nil
               :accessor query-row-count)
+   (row-format :type (member :plist :alist :hash-table :values)
+               :initarg :row-format
+               :initform :plist
+               :accessor query-row-format)
    (cached :initarg :cached
            :initform nil
            :accessor query-cached-p))
@@ -151,13 +156,14 @@ This method may be overrided by subclasses."
               (setf (query-cached-p query) t)
               query))))
 
-(defgeneric execute (query &optional params)
+(defgeneric execute (query &optional params format)
   (:documentation "Execute `query` with `params` and return the results.")
-  (:method ((query dbi-query) &optional params)
+  (:method ((query dbi-query) &optional params format)
     (execute-using-connection
      (query-connection query)
      query
-     params)))
+     params
+     format)))
 
 (defgeneric fetch (query)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
@@ -191,10 +197,10 @@ This method may be overrided by subclasses.")
         (assert-transaction-is-in-progress state))
       (call-next-method))))
 
-(defgeneric execute-using-connection (conn query params)
+(defgeneric execute-using-connection (conn query params &optional format)
   (:documentation "Execute `query` in `conn`.
 This method must be implemented in each drivers.")
-  (:method ((conn dbi-connection) (query dbi-query) params)
+  (:method ((conn dbi-connection) (query dbi-query) params &optional format)
     (declare (ignore conn query params))
     (error 'dbi-unimplemented-error
            :method-name 'execute-using-connection)))

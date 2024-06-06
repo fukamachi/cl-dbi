@@ -56,25 +56,33 @@
     (setf (mysql-use-store query) store)
     query))
 
-(defun result-set-field-names (handle)
-  (mapcar (lambda (field)
-            ;; field = (name column-type)
-            (intern (first field) :keyword))
-          (first (result-set-fields handle))))
+(defun fetch-next-row (handle &key (fields (first (result-set-fields handle)))
+                                   format)
+  (let ((format (or format :plist))
+        (row (next-row handle)))
+    (ecase format
+      (:plist
+       (loop for (field . nil) in fields
+             for value in row
+             append (list (intern field :keyword) value)))
+      (:alist
+       (mapcar (lambda (field value)
+                 (cons (first field) value))
+               fields row))
+      (:values row)
+      (:hash-table
+       (let ((hash (make-hash-table :test 'equal)))
+         (loop for (field . nil) in fields
+               for value in row
+               do (setf (gethash field hash) value))
+         hash)))))
 
-(defun fetch-next-row (handle &optional fields)
-  (let ((row (next-row handle))
-        (fields (or fields
-                    (result-set-field-names handle))))
-    (when row
-      (loop for field in fields
-            for value in row
-            append (list field value)))))
-
-(defun fetch-all-rows (handle)
-  (loop with fields = (result-set-field-names handle)
+(defun fetch-all-rows (handle &key format)
+  (loop with fields = (first (result-set-fields handle))
         for count from 0
-        for row = (fetch-next-row handle fields)
+        for row = (fetch-next-row handle
+                                  :fields fields
+                                  :format format)
         while row
         collect row into rows
         finally (return (values rows
@@ -83,7 +91,7 @@
                                     ;; Return the modified count for modification query.
                                     (first (process-result-set handle (make-hash-table))))))))
 
-(defmethod execute-using-connection ((conn dbd-mysql-connection) (query dbd-mysql-query) params)
+(defmethod execute-using-connection ((conn dbd-mysql-connection) (query dbd-mysql-query) params &optional format)
   (let* (took-usec
          (result
            (with-error-handler conn
@@ -96,12 +104,14 @@
     (cond
       ((mysql-use-store query)
        (multiple-value-bind (rows count)
-           (fetch-all-rows result)
+           (fetch-all-rows result :format format)
          (sql-log (query-sql query) params count took-usec)
          (setf result (make-mysql-result-list rows count))
          (setf (query-row-count query) count)))
       (t
        (sql-log (query-sql query) params nil took-usec)))
+    (when format
+      (setf (query-row-format query) format))
     (setf (query-results query) result)
     query))
 
@@ -109,7 +119,8 @@
   (let ((result (query-results query)))
     (if (mysql-result-list-p result)
         (pop (slot-value result 'result-set))
-        (fetch-next-row result))))
+        (fetch-next-row result
+                        :format (query-row-format query)))))
 
 (defmethod escape-sql ((conn dbd-mysql-connection) (sql string))
   (escape-string sql :database (connection-handle conn)))

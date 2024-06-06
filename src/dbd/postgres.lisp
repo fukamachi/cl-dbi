@@ -114,9 +114,29 @@
                                (not (query-freed-p query)))
                       (push name (slot-value conn '%deallocation-queue)))))))))
 
-(defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
+(def-row-reader plist-row-reader (fields)
+  (loop while (next-row)
+        collect (loop for field across fields
+                      collect (intern (field-name field) :keyword)
+                      collect (next-field field))))
+
+(def-row-reader hash-row-reader (fields)
+  (let ((hash (make-hash-table :test 'equal)))
+    (loop while (next-row)
+          do (loop for field across fields
+                   do (setf (gethash field hash)
+                            (next-field field))))
+    hash))
+
+(defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params &optional format)
   (with-handling-pg-errors
-    (let (took-usec retried)
+    (let (took-usec
+          retried
+          (row-reader (ecase (or format (query-row-format query))
+                        (:plist 'plist-row-reader)
+                        (:alist 'alist-row-reader)
+                        (:hash-table 'hash-row-reader)
+                        (:values 'list-row-reader))))
       (multiple-value-bind (result count)
         (with-took-usec took-usec
           (block nil
@@ -126,14 +146,11 @@
                                          (slot-value query 'name)
                                          params
                                          ;; TODO: lazy fetching
-                                         (row-reader (fields)
-                                                     (let ((result
-                                                             (loop while (next-row)
-                                                                   collect (loop for field across fields
-                                                                                 collect (intern (field-name field) :keyword)
-                                                                                 collect (next-field field)))))
-                                                       (setf (query-results query) result)
-                                                       query))))
+                                         (lambda (socket fields)
+                                           (let ((result
+                                                   (funcall row-reader socket fields)))
+                                             (setf (query-results query) result)
+                                             query))))
                 (invalid-sql-statement-name (e)
                   ;; Retry if cached prepared statement is not available anymore
                   (when (and (query-cached-p query)
@@ -146,6 +163,8 @@
                     (go retry))
                   (error e))))))
         (sql-log (query-sql query) params count took-usec)
+        (when format
+          (setf (query-row-format query) format))
         (or result
             (progn
               (setf (slot-value conn '%modified-row-count) count)
