@@ -22,9 +22,9 @@
            #:query-connection
            #:query-sql
            #:query-prepared
+           #:query-fields
            #:query-results
            #:query-row-count
-           #:query-row-format
            #:query-cached-p
            #:prepare
            #:prepare-cached
@@ -123,16 +123,14 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
    (prepared :type t
              :initarg :prepared
              :accessor query-prepared)
+   (fields :initarg :fields
+           :accessor query-fields)
    (results :initarg :results
             :accessor query-results)
    (row-count :type (or integer null)
               :initarg :row-count
               :initform nil
               :accessor query-row-count)
-   (row-format :type (member :plist :alist :hash-table :values)
-               :initarg :row-format
-               :initform :plist
-               :accessor query-row-format)
    (cached :initarg :cached
            :initform nil
            :accessor query-cached-p))
@@ -156,29 +154,28 @@ This method may be overrided by subclasses."
               (setf (query-cached-p query) t)
               query))))
 
-(defgeneric execute (query &optional params format)
+(defgeneric execute (query &optional params)
   (:documentation "Execute `query` with `params` and return the results.")
-  (:method ((query dbi-query) &optional params format)
+  (:method ((query dbi-query) &optional params)
     (execute-using-connection
      (query-connection query)
      query
-     params
-     format)))
+     params)))
 
-(defgeneric fetch (query)
+(defgeneric fetch (query &key format)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
-  (:method ((query dbi-query))
-    (fetch-using-connection (query-connection query) query)))
+  (:method ((query dbi-query) &key (format :plist))
+    (fetch-using-connection (query-connection query) query format)))
 
-(defgeneric fetch-all (query)
+(defgeneric fetch-all (query &key format)
   (:documentation "Fetch all rest rows from `query`.")
-  (:method ((query dbi-query))
-    (loop for result = (fetch query)
+  (:method ((query dbi-query) &key (format :plist))
+    (loop for result = (fetch query :format format)
           while result
           collect result)))
 
-(defgeneric fetch-using-connection (conn query)
-  (:method ((conn dbi-connection) (query dbi-query))
+(defgeneric fetch-using-connection (conn query format)
+  (:method ((conn dbi-connection) (query dbi-query) format)
     (error 'dbi-unimplemented-error
            :method-name 'fetch-using-connection)))
 
@@ -197,10 +194,10 @@ This method may be overrided by subclasses.")
         (assert-transaction-is-in-progress state))
       (call-next-method))))
 
-(defgeneric execute-using-connection (conn query params &optional format)
+(defgeneric execute-using-connection (conn query params)
   (:documentation "Execute `query` in `conn`.
 This method must be implemented in each drivers.")
-  (:method ((conn dbi-connection) (query dbi-query) params &optional format)
+  (:method ((conn dbi-connection) (query dbi-query) params)
     (declare (ignore conn query params))
     (error 'dbi-unimplemented-error
            :method-name 'execute-using-connection)))

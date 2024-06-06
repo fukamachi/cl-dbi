@@ -114,29 +114,9 @@
                                (not (query-freed-p query)))
                       (push name (slot-value conn '%deallocation-queue)))))))))
 
-(def-row-reader plist-row-reader (fields)
-  (loop while (next-row)
-        collect (loop for field across fields
-                      collect (intern (field-name field) :keyword)
-                      collect (next-field field))))
-
-(def-row-reader hash-row-reader (fields)
-  (let ((hash (make-hash-table :test 'equal)))
-    (loop while (next-row)
-          do (loop for field across fields
-                   do (setf (gethash field hash)
-                            (next-field field))))
-    hash))
-
-(defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params &optional format)
+(defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
   (with-handling-pg-errors
-    (let (took-usec
-          retried
-          (row-reader (ecase (or format (query-row-format query))
-                        (:plist 'plist-row-reader)
-                        (:alist 'alist-row-reader)
-                        (:hash-table 'hash-row-reader)
-                        (:values 'list-row-reader))))
+    (let (took-usec retried)
       (multiple-value-bind (result count)
         (with-took-usec took-usec
           (block nil
@@ -148,7 +128,10 @@
                                          ;; TODO: lazy fetching
                                          (lambda (socket fields)
                                            (let ((result
-                                                   (funcall row-reader socket fields)))
+                                                   (funcall 'list-row-reader socket fields)))
+                                             (setf (query-fields query)
+                                                   (loop for field across fields
+                                                         collect (field-name field)))
                                              (setf (query-results query) result)
                                              query))))
                 (invalid-sql-statement-name (e)
@@ -163,8 +146,6 @@
                     (go retry))
                   (error e))))))
         (sql-log (query-sql query) params count took-usec)
-        (when format
-          (setf (query-row-format query) format))
         (or result
             (progn
               (setf (slot-value conn '%modified-row-count) count)
@@ -174,8 +155,27 @@
                              :results (list count)
                              :row-count count)))))))
 
-(defmethod fetch ((query dbd-postgres-query))
-  (pop (query-results query)))
+(defmethod fetch ((query dbd-postgres-query) &key (format :plist))
+  (let ((fields (query-fields query))
+        (row (pop (query-results query))))
+    (ecase format
+      (:plist
+       (loop for field in fields
+             for value in row
+             collect (intern field :keyword)
+             collect value))
+      (:alist
+       (loop for field in fields
+             for value in row
+             collect (cons field value)))
+      (:hash-table
+       (let ((hash (make-hash-table :test 'equal)))
+         (loop for field in fields
+               for value in row
+               do (setf (gethash field hash) value))
+         hash))
+      (:values
+       row))))
 
 (defmethod do-sql ((conn dbd-postgres-connection) sql &optional params)
   (if params
