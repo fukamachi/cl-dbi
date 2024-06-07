@@ -126,14 +126,14 @@
                                          (slot-value query 'name)
                                          params
                                          ;; TODO: lazy fetching
-                                         (row-reader (fields)
-                                                     (let ((result
-                                                             (loop while (next-row)
-                                                                   collect (loop for field across fields
-                                                                                 collect (intern (field-name field) :keyword)
-                                                                                 collect (next-field field)))))
-                                                       (setf (query-results query) result)
-                                                       query))))
+                                         (lambda (socket fields)
+                                           (let ((result
+                                                   (funcall 'list-row-reader socket fields)))
+                                             (setf (query-fields query)
+                                                   (loop for field across fields
+                                                         collect (field-name field)))
+                                             (setf (query-results query) result)
+                                             query))))
                 (invalid-sql-statement-name (e)
                   ;; Retry if cached prepared statement is not available anymore
                   (when (and (query-cached-p query)
@@ -155,8 +155,27 @@
                              :results (list count)
                              :row-count count)))))))
 
-(defmethod fetch ((query dbd-postgres-query))
-  (pop (query-results query)))
+(defmethod fetch ((query dbd-postgres-query) &key (format :plist))
+  (let ((fields (query-fields query))
+        (row (pop (query-results query))))
+    (ecase format
+      (:plist
+       (loop for field in fields
+             for value in row
+             collect (intern field :keyword)
+             collect value))
+      (:alist
+       (loop for field in fields
+             for value in row
+             collect (cons field value)))
+      (:hash-table
+       (let ((hash (make-hash-table :test 'equal)))
+         (loop for field in fields
+               for value in row
+               do (setf (gethash field hash) value))
+         hash))
+      (:values
+       row))))
 
 (defmethod do-sql ((conn dbd-postgres-connection) sql &optional params)
   (if params

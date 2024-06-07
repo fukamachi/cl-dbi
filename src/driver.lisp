@@ -8,7 +8,8 @@
                 #:dbi-notsupported-error)
   (:import-from #:c2mop
                 #:class-direct-subclasses)
-  (:export #:dbi-driver
+  (:export #:*row-format*
+           #:dbi-driver
            #:dbi-connection
            #:connection-database-name
            #:connection-handle
@@ -22,6 +23,7 @@
            #:query-connection
            #:query-sql
            #:query-prepared
+           #:query-fields
            #:query-results
            #:query-row-count
            #:query-cached-p
@@ -51,6 +53,8 @@
            #:<dbi-connection>
            #:<dbi-query>))
 (in-package #:dbi.driver)
+
+(defvar *row-format* :plist)
 
 (defclass/a dbi-driver () ()
   (:documentation "Base class for DB driver."))
@@ -122,6 +126,8 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
    (prepared :type t
              :initarg :prepared
              :accessor query-prepared)
+   (fields :initarg :fields
+           :accessor query-fields)
    (results :initarg :results
             :accessor query-results)
    (row-count :type (or integer null)
@@ -159,20 +165,20 @@ This method may be overrided by subclasses."
      query
      params)))
 
-(defgeneric fetch (query)
+(defgeneric fetch (query &key format)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
-  (:method ((query dbi-query))
-    (fetch-using-connection (query-connection query) query)))
+  (:method ((query dbi-query) &key (format *row-format*))
+    (fetch-using-connection (query-connection query) query format)))
 
-(defgeneric fetch-all (query)
+(defgeneric fetch-all (query &key format)
   (:documentation "Fetch all rest rows from `query`.")
-  (:method ((query dbi-query))
-    (loop for result = (fetch query)
+  (:method ((query dbi-query) &key (format *row-format*))
+    (loop for result = (fetch query :format format)
           while result
           collect result)))
 
-(defgeneric fetch-using-connection (conn query)
-  (:method ((conn dbi-connection) (query dbi-query))
+(defgeneric fetch-using-connection (conn query format)
+  (:method ((conn dbi-connection) (query dbi-query) format)
     (error 'dbi-unimplemented-error
            :method-name 'fetch-using-connection)))
 
