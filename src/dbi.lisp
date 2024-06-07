@@ -14,6 +14,7 @@
                 #:prepare
                 #:prepare-cached
                 #:query-prepared
+                #:query-fields
                 #:query-connection
                 #:query-sql
                 #:query-cached-p
@@ -46,6 +47,7 @@
            #:prepare
            #:prepare-cached
            #:query-prepared
+           #:query-fields
            #:query-connection
            #:query-sql
            #:query-cached-p
