@@ -1,5 +1,5 @@
 (defsystem "dbi"
-  :version "0.9.5"
+  :version "0.10.0"
   :author "Eitaro Fukamachi"
   :license "LLGPL"
   :depends-on ("split-sequence"
