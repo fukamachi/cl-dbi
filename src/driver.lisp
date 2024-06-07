@@ -8,7 +8,8 @@
                 #:dbi-notsupported-error)
   (:import-from #:c2mop
                 #:class-direct-subclasses)
-  (:export #:dbi-driver
+  (:export #:*row-format*
+           #:dbi-driver
            #:dbi-connection
            #:connection-database-name
            #:connection-handle
@@ -52,6 +53,8 @@
            #:<dbi-connection>
            #:<dbi-query>))
 (in-package #:dbi.driver)
+
+(defvar *row-format* :plist)
 
 (defclass/a dbi-driver () ()
   (:documentation "Base class for DB driver."))
@@ -164,12 +167,12 @@ This method may be overrided by subclasses."
 
 (defgeneric fetch (query &key format)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
-  (:method ((query dbi-query) &key (format :plist))
+  (:method ((query dbi-query) &key (format *row-format*))
     (fetch-using-connection (query-connection query) query format)))
 
 (defgeneric fetch-all (query &key format)
   (:documentation "Fetch all rest rows from `query`.")
-  (:method ((query dbi-query) &key (format :plist))
+  (:method ((query dbi-query) &key (format *row-format*))
     (loop for result = (fetch query :format format)
           while result
           collect result)))

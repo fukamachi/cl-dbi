@@ -33,7 +33,8 @@
                 #:ping
                 #:row-count
                 #:transaction-done-condition
-                #:free-query-resources)
+                #:free-query-resources
+                #:*row-format*)
   (:import-from #:dbi.logger
                 #:*sql-execution-hooks*
                 #:simple-sql-logger)
@@ -64,6 +65,7 @@
            #:ping
            #:row-count
            #:free-query-resources
+           #:*row-format*
 
            #:dbi-error
            #:dbi-warning
