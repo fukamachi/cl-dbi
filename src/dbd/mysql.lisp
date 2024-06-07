@@ -90,14 +90,14 @@
 
 (defmethod fetch-using-connection ((conn dbd-mysql-connection) query format)
   (let* ((result (query-results query))
-         (fields (if (slot-boundp query 'dbi.driver::fields)
-                     (query-fields query)
-                     (setf (query-fields query)
-                           (first (result-set-fields result)))))
          (row
            (if (mysql-result-list-p result)
                (pop (slot-value result 'result-set))
-               (next-row result))))
+               (next-row result)))
+         (fields (if (slot-boundp query 'dbi.driver::fields)
+                     (query-fields query)
+                     (setf (query-fields query)
+                           (mapcar #'first (first (result-set-fields result)))))))
     (ecase format
       (:plist
        (loop for field in fields

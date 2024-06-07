@@ -124,27 +124,31 @@
                   (declare (ignore e))
                   (finalize-statement prepared)
                   nil))
-          (ecase format
-            (:plist
-             (loop for column in (statement-column-names prepared)
-                   for i from 0
-                   collect (intern column :keyword)
-                   collect (statement-column-value prepared i)))
-            (:alist
-             (loop for column in (statement-column-names prepared)
-                   for i from 0
-                   collect (cons column (statement-column-value prepared i))))
-            (:hash-table
-             (let ((hash (make-hash-table :test 'equal)))
-               (loop for column in (statement-column-names prepared)
+          (let ((fields (if (slot-boundp query 'dbi.driver::fields)
+                            (query-fields query)
+                            (setf (query-fields query)
+                                  (statement-column-names prepared)))))
+            (ecase format
+              (:plist
+               (loop for column in fields
                      for i from 0
-                     do (setf (gethash column hash)
-                              (statement-column-value prepared i)))
-               hash))
-            (:values
-             (loop repeat (length (statement-column-names prepared))
-                   for i from 0
-                   collect (statement-column-value prepared i))))))))
+                     collect (intern column :keyword)
+                     collect (statement-column-value prepared i)))
+              (:alist
+               (loop for column in fields
+                     for i from 0
+                     collect (cons column (statement-column-value prepared i))))
+              (:hash-table
+               (let ((hash (make-hash-table :test 'equal)))
+                 (loop for column in fields
+                       for i from 0
+                       do (setf (gethash column hash)
+                                (statement-column-value prepared i)))
+                 hash))
+              (:values
+               (loop repeat (length fields)
+                     for i from 0
+                     collect (statement-column-value prepared i)))))))))
 
 (defmethod disconnect ((conn dbd-sqlite3-connection))
   (when (slot-boundp (connection-handle conn) 'sqlite::handle)

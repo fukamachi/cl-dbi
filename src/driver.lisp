@@ -173,9 +173,30 @@ This method may be overrided by subclasses."
 (defgeneric fetch-all (query &key format)
   (:documentation "Fetch all rest rows from `query`.")
   (:method ((query dbi-query) &key (format *row-format*))
-    (loop for result = (fetch query :format format)
-          while result
-          collect result)))
+    (let* (;; Fetch the first row to ensure 'query-fields' is set.
+           (first-row (fetch query :format :values))
+           (fields (query-fields query))
+           (fields (if (eq format :plist)
+                       (mapcar (lambda (field) (intern field :keyword)) fields)
+                       fields)))
+      (loop for row = first-row then (fetch query :format :values)
+            while row
+            collect
+               (ecase format
+                 (:plist
+                  (loop for key in fields
+                        for val in row
+                        collect key
+                        collect val))
+                 (:alist
+                  (mapcar #'cons fields row))
+                 (:hash-table
+                  (let ((hash (make-hash-table :test 'equal)))
+                    (loop for key in fields
+                          for val in row
+                          do (setf (gethash key hash) val))
+                    hash))
+                 (:values row))))))
 
 (defgeneric fetch-using-connection (conn query format)
   (:method ((conn dbi-connection) (query dbi-query) format)
