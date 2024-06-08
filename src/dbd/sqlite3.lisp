@@ -158,7 +158,7 @@
   (sqlite:execute-non-query (connection-handle conn) "BEGIN TRANSACTION")
   (sql-log "BEGIN TRANSACTION" nil nil nil))
 
-(defmethod commit ((conn dbd-sqlite3-connection))
+(defmethod commit ((conn dbd-sqlite3-connection) &opti)
   (sqlite:execute-non-query (connection-handle conn) "COMMIT TRANSACTION")
   (sql-log "COMMIT TRANSACTION" nil nil nil))
 
