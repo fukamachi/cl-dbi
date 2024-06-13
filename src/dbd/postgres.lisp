@@ -69,7 +69,9 @@
 (defclass/a dbd-postgres-query (dbi-query)
   ((name :initarg :name)
    (freedp :initform nil
-           :accessor query-freed-p)))
+           :accessor query-freed-p))
+  (:default-initargs
+   :fields nil))
 
 (defmacro with-handling-pg-errors (&body body)
   `(handler-case (progn ,@body)
