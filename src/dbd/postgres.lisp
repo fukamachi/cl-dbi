@@ -51,7 +51,7 @@
   (+ #.(encode-universal-time 0 0 0 1 1 2000 0)
      (/ usec 1000000.0d0)))
 
-(defmethod make-connection ((driver dbd-postgres) &key database-name username password (host "localhost") (port 5432) (use-ssl :no) (microsecond-precision nil))
+(defmethod make-connection ((driver dbd-postgres) &key database-name username password (host "localhost") (port 5432) (use-ssl :no) (microsecond-precision nil) (service "postgres") (application-name "postmodern-default") use-binary)
   (when microsecond-precision
     (cl-postgres:set-sql-datetime-readers
      :timestamp #'usec-convert
@@ -64,7 +64,10 @@
                             password
                             host
                             port
-                            use-ssl)))
+                            use-ssl
+                            service
+                            application-name
+                            use-binary)))
 
 (defclass/a dbd-postgres-query (dbi-query)
   ((name :initarg :name)
