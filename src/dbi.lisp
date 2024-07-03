@@ -22,6 +22,9 @@
                 #:fetch
                 #:fetch-all
                 #:do-sql
+                #:clear-transaction-state
+                #:end-transaction
+                #:start-transaction
                 #:begin-transaction
                 #:in-transaction
                 #:commit
@@ -55,6 +58,9 @@
            #:fetch
            #:fetch-all
            #:do-sql
+           #:clear-transaction-state
+           #:start-transaction
+           #:end-transaction
            #:begin-transaction
            #:in-transaction
            #:commit
