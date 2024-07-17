@@ -242,9 +242,6 @@ This method must be implemented in each drivers.")
        (unwind-protect (call-next-method)
          (setf auto-commit saved)))))
 
-(defun generate-random-savepoint ()
-  (format nil "savepoint_~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
-
 (defvar *transaction-state* nil
   "A stack of transaction and savepoint states.")
 
@@ -262,7 +259,7 @@ This method must be implemented in each drivers.")
 
 (defclass savepoint-state (transaction-state)
   ((identifier :type string
-               :initform (generate-random-savepoint)
+               :initform (random-string "savepoint")
                :reader get-identifier)))
 
 (defun get-transaction-state (conn)

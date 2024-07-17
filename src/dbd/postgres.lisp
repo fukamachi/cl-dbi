@@ -94,7 +94,7 @@
         for prepared = (pop (slot-value conn '%deallocation-queue))
         while prepared
         do (unprepare-query (connection-handle conn) prepared))
-  (let ((name (symbol-name (gensym "PREPARED-STATEMENT"))))
+  (let ((name (random-string "prepared_stmt")))
     (setf sql
           (with-output-to-string (s)
             (loop with i = 0
@@ -145,7 +145,7 @@
                              (not retried))
                     (assert (eq conn (query-connection query)))
                     (setf (query-prepared query)
-                          (prepare-query (connection-handle conn) (symbol-name (gensym "PREPARED-STATEMENT"))
+                          (prepare-query (connection-handle conn) (random-string "prepared_stmt")
                                          (query-sql query)))
                     (setf retried t)
                     (go retry))
@@ -215,7 +215,7 @@
         (and (database-open-p handle)
              (progn
                (cl-postgres::send-parse (cl-postgres::connection-socket handle)
-                                        (symbol-name (gensym "PING"))
+                                        (random-string "ping")
                                         ""
                                         nil
                                         nil)
