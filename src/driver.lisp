@@ -27,6 +27,13 @@
            #:query-results
            #:query-row-count
            #:query-cached-p
+           #:dbi-cursor
+           #:cursor-connection
+           #:cursor-sql
+           #:cursor-name
+           #:cursor-formatter
+           #:cursor-declared-p
+           #:make-cursor
            #:prepare
            #:prepare-cached
            #:execute
@@ -139,6 +146,25 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
            :accessor query-cached-p))
   (:documentation "Class that represents a prepared DB query."))
 
+(defclass dbi-cursor ()
+  ((connection :type dbi-connection
+               :initarg :connection
+               :accessor cursor-connection)
+   (sql :type string
+        :initarg :sql
+        :accessor cursor-sql)
+   (name :type string
+         :initform (random-string "cursor")
+         :accessor cursor-name)
+   (formatter :type function
+              :accessor cursor-formatter)
+   (declared :type boolean
+             :initform nil
+             :accessor cursor-declared-p)))
+
+(defmethod initialize-instance :after ((cursor dbi-cursor) &key sql &allow-other-keys)
+  (setf (slot-value cursor 'formatter) (compile-sql sql)))
+
 (defgeneric prepare (conn sql &key))
 
 (defmethod prepare ((conn dbi-connection) (sql string) &key (query-class 'dbi-query))
@@ -157,12 +183,23 @@ This method may be overrided by subclasses."
               (setf (query-cached-p query) t)
               query))))
 
+(defgeneric make-cursor (conn sql &key cursor-class)
+  (:method ((conn dbi-connection) (sql string) &key (cursor-class 'dbi-cursor))
+    (make-instance cursor-class
+                   :connection conn
+                   :sql sql)))
+
 (defgeneric execute (query &optional params)
   (:documentation "Execute `query` with `params` and return the results.")
   (:method ((query dbi-query) &optional params)
     (execute-using-connection
      (query-connection query)
      query
+     params))
+  (:method ((cursor dbi-cursor) &optional params)
+    (execute-using-connection
+     (cursor-connection cursor)
+     cursor
      params)))
 
 (defgeneric fetch (query &key format)

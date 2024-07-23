@@ -4,6 +4,8 @@
         #:dbi.logger
         #:dbi.utils
         #:cl-mysql)
+  (:shadowing-import-from #:cl-mysql
+                          #:escape-string)
   (:shadowing-import-from #:dbi.driver
                           #:disconnect
                           #:ping)

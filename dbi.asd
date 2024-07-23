@@ -4,6 +4,7 @@
   :license "LLGPL"
   :depends-on ("split-sequence"
                "closer-mop"
+               "cl-ppcre"
                (:feature #1=(:or :abcl
                                  (:and :allegro :multiprocessing)
                                  (:and :clasp :threads)

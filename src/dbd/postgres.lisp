@@ -76,6 +76,26 @@
   (:default-initargs
    :fields nil))
 
+(defun set-finalizer (conn query)
+  (let ((name (slot-value query 'name)))
+    (finalize query
+              (lambda ()
+                (when (and (database-open-p (connection-handle conn))
+                           (not (query-freed-p query)))
+                  (push name (slot-value conn '%deallocation-queue)))))))
+
+(defun make-query (conn sql)
+  (let* ((conn-handle (connection-handle conn))
+         (name (random-string "prepared_stmt"))
+         (query
+           (make-instance 'dbd-postgres-query
+                          :connection conn
+                          :name name
+                          :sql sql
+                          :prepared (prepare-query conn-handle name sql))))
+    (set-finalizer conn query)
+    query))
+
 (defmacro with-handling-pg-errors (&body body)
   `(handler-case (progn ,@body)
      (syntax-error-or-access-violation (e)
@@ -94,62 +114,63 @@
         for prepared = (pop (slot-value conn '%deallocation-queue))
         while prepared
         do (unprepare-query (connection-handle conn) prepared))
-  (let ((name (random-string "prepared_stmt")))
-    (setf sql
-          (with-output-to-string (s)
-            (loop with i = 0
-                  with escaped = nil
-                  for c across sql
-                  if (and (char= c #\\) (not escaped))
-                    do (setf escaped t)
-                  else do (setf escaped nil)
-                  if (and (char= c #\?) (not escaped))
-                    do (format s "$~D" (incf i))
-                  else do (write-char c s))))
-    (with-handling-pg-errors
-      (let* ((conn-handle (connection-handle conn))
-             (query (make-instance 'dbd-postgres-query
-                                   :connection conn
-                                   :name name
-                                   :sql sql
-                                   :prepared (prepare-query conn-handle name sql))))
-        (finalize query
-                  (lambda ()
-                    (when (and (database-open-p conn-handle)
-                               (not (query-freed-p query)))
-                      (push name (slot-value conn '%deallocation-queue)))))))))
+  (setf sql
+        (with-output-to-string (s)
+          (loop with i = 0
+                with escaped = nil
+                for c across sql
+                if (and (char= c #\\) (not escaped))
+                do (setf escaped t)
+                else do (setf escaped nil)
+                if (and (char= c #\?) (not escaped))
+                do (format s "$~D" (incf i))
+                else do (write-char c s))))
+  (with-handling-pg-errors
+    (make-query conn sql)))
+
+(defmethod execute-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor) params)
+  (assert (in-transaction conn))
+  (with-accessors ((sql cursor-sql)
+                   (name cursor-name)
+                   (formatter cursor-formatter))
+      cursor
+    (exec-query (connection-handle conn)
+                (format nil "DECLARE ~A CURSOR FOR ~A"
+                        name
+                        (funcall formatter params)))
+    (setf (cursor-declared-p cursor) t)
+    cursor))
 
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (query dbd-postgres-query) params)
   (with-handling-pg-errors
     (let (took-usec retried)
       (multiple-value-bind (result count)
-        (with-took-usec took-usec
-          (block nil
-            (tagbody retry
-              (handler-case
-                  (return (exec-prepared (connection-handle conn)
-                                         (slot-value query 'name)
-                                         params
-                                         ;; TODO: lazy fetching
-                                         (lambda (socket fields)
-                                           (let ((result
-                                                   (funcall 'list-row-reader socket fields)))
-                                             (setf (query-fields query)
-                                                   (loop for field across fields
-                                                         collect (field-name field)))
-                                             (setf (query-results query) result)
-                                             query))))
-                (invalid-sql-statement-name (e)
-                  ;; Retry if cached prepared statement is not available anymore
-                  (when (and (query-cached-p query)
-                             (not retried))
-                    (assert (eq conn (query-connection query)))
-                    (setf (query-prepared query)
-                          (prepare-query (connection-handle conn) (random-string "prepared_stmt")
-                                         (query-sql query)))
-                    (setf retried t)
-                    (go retry))
-                  (error e))))))
+          (with-took-usec took-usec
+            (block nil
+              (tagbody retry
+                (handler-case
+                    (return (exec-prepared (connection-handle conn)
+                                           (slot-value query 'name)
+                                           params
+                                           (lambda (socket fields)
+                                             (let ((result
+                                                     (funcall 'list-row-reader socket fields)))
+                                               (setf (query-fields query)
+                                                     (loop for field across fields
+                                                           collect (field-name field)))
+                                               (setf (query-results query) result)
+                                               query))))
+                  (invalid-sql-statement-name (e)
+                    ;; Retry if cached prepared statement is not available anymore
+                    (when (and (query-cached-p query)
+                               (not retried))
+                      (assert (eq conn (query-connection query)))
+                      (setf (query-prepared query)
+                            (prepare-query (connection-handle conn) (random-string "prepared_stmt")
+                                           (query-sql query)))
+                      (setf retried t)
+                      (go retry))
+                    (error e))))))
         (sql-log (query-sql query) params count took-usec)
         (or result
             (progn
@@ -159,6 +180,36 @@
                              :sql (query-sql query)
                              :results (list count)
                              :row-count count)))))))
+
+(def-row-reader plist-row-reader (fields)
+  (loop while (next-row)
+        collect (loop for field across fields
+                      append (list (intern (field-name field) :keyword)
+                                   (next-field field)))))
+
+(def-row-reader hash-table-row-reader (fields)
+  (loop while (next-row)
+        collect (loop with hash = (make-hash-table :test 'equal)
+                      for field across fields
+                      do (setf (gethash (field-name field) hash)
+                               (next-field field))
+                      finally (return hash))))
+
+(defmethod fetch ((cursor dbi-cursor) &key (format :plist))
+  (unless (cursor-declared-p cursor)
+    (error "The cursor is not declared yet."))
+  (first
+   (exec-query (connection-handle (cursor-connection cursor))
+               (format nil "FETCH ~A" (cursor-name cursor))
+               (ecase format
+                 (:plist
+                  'plist-row-reader)
+                 (:alist
+                  'cl-postgres:alist-row-reader)
+                 (:hash-table
+                  'hash-table-row-reader)
+                 (:values
+                  'cl-postgres:list-row-reader)))))
 
 (defmethod fetch ((query dbd-postgres-query) &key (format :plist))
   (let ((fields (query-fields query))
