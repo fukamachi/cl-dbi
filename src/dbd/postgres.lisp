@@ -128,6 +128,11 @@
   (with-handling-pg-errors
     (make-query conn sql)))
 
+(defmethod make-cursor ((conn dbd-postgres-connection) sql &key (cursor-class 'dbi-cursor))
+  (make-instance cursor-class
+                 :connection conn
+                 :sql sql))
+
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor) params)
   (assert (in-transaction conn))
   (with-accessors ((sql cursor-sql)

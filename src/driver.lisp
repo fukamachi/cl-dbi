@@ -184,10 +184,10 @@ This method may be overrided by subclasses."
               query))))
 
 (defgeneric make-cursor (conn sql &key cursor-class)
-  (:method ((conn dbi-connection) (sql string) &key (cursor-class 'dbi-cursor))
-    (make-instance cursor-class
-                   :connection conn
-                   :sql sql)))
+  (:method (conn sql &key cursor-class)
+    (declare (ignore conn sql cursor-class))
+    (error 'dbi-unimplemented-error
+           :method-name 'make-cursor)))
 
 (defgeneric execute (query &optional params)
   (:documentation "Execute `query` with `params` and return the results.")
