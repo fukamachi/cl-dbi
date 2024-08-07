@@ -205,7 +205,9 @@ This method may be overrided by subclasses."
 (defgeneric fetch (query &key format)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
   (:method ((query dbi-query) &key (format *row-format*))
-    (fetch-using-connection (query-connection query) query format)))
+    (fetch-using-connection (query-connection query) query format))
+  (:method ((cursor dbi-cursor) &key (format *row-format*))
+    (fetch-using-connection (cursor-connection cursor) cursor format)))
 
 (defgeneric fetch-all (query &key format)
   (:documentation "Fetch all rest rows from `query`.")

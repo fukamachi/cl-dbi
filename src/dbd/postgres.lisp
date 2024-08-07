@@ -200,11 +200,11 @@
                                (next-field field))
                       finally (return hash))))
 
-(defmethod fetch ((cursor dbi-cursor) &key (format :plist))
+(defmethod fetch-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor) format)
   (unless (cursor-declared-p cursor)
     (error "The cursor is not declared yet."))
   (first
-   (exec-query (connection-handle (cursor-connection cursor))
+   (exec-query (connection-handle conn)
                (format nil "FETCH ~A" (cursor-name cursor))
                (ecase format
                  (:plist
@@ -216,7 +216,8 @@
                  (:values
                   'cl-postgres:list-row-reader)))))
 
-(defmethod fetch ((query dbd-postgres-query) &key (format :plist))
+(defmethod fetch-using-connection ((conn dbd-postgres-connection) (query dbi-query) format)
+  (declare (ignore conn))
   (let ((fields (query-fields query))
         (row (pop (query-results query))))
     (ecase format
