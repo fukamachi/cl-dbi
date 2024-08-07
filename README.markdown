@@ -181,11 +181,11 @@ All you need is Docker and Docker Compose.
 
 To run all tests, execute this in the shell:
 
-    docker-compose up tests
+    docker compose up tests
 
 ### Running specific driver's unittests
 
-Running tests with docker-compose does not allow you
+Running tests with 'docker compose' does not allow you
 to debug code in SLIME or SLY. To do this, you need
 to start databases as separate containers and to make
 their ports available to the host machine.
