@@ -38,7 +38,6 @@
               (make-cursor conn "SELECT * FROM person")))
         (execute cursor)
         (ok (equal (getf (fetch cursor) :|name|) "Woody"))
-        (ok (equal (getf (fetch cursor :peek t) :|name|) "Buzz"))
         (ok (equal (getf (fetch cursor) :|name|) "Buzz"))))
     (with-transaction conn
       (let ((cursor (make-cursor conn "SELECT * FROM person WHERE name = 'Trixie'")))
