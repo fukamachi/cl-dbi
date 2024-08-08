@@ -135,7 +135,7 @@
 
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor) params)
   (assert (in-transaction conn))
-  (with-accessors ((sql cursor-sql)
+  (with-accessors ((sql query-sql)
                    (name cursor-name)
                    (formatter cursor-formatter))
       cursor
@@ -143,6 +143,14 @@
                 (format nil "DECLARE ~A CURSOR FOR ~A"
                         name
                         (funcall formatter params)))
+    (setf (query-fields cursor)
+          (first
+           (exec-query (connection-handle conn)
+                       (format nil "FETCH ~A" name)
+                       'field-row-reader)))
+    (exec-query (connection-handle conn)
+                (format nil "FETCH RELATIVE -1 ~A" name)
+                'cl-postgres:ignore-row-reader)
     (setf (cursor-declared-p cursor) t)
     cursor))
 
@@ -186,58 +194,23 @@
                              :results (list count)
                              :row-count count)))))))
 
-(def-row-reader plist-row-reader (fields)
+(declaim #+sbcl (sb-ext:muffle-conditions sb-ext:code-deletion-note))
+(def-row-reader field-row-reader (fields)
   (loop while (next-row)
         collect (loop for field across fields
-                      append (list (intern (field-name field) :keyword)
-                                   (next-field field)))))
+                      collect (field-name field)
+                      do (next-field field))))
+(declaim #+sbcl (sb-ext:unmuffle-conditions sb-ext:code-deletion-note))
 
-(def-row-reader hash-table-row-reader (fields)
-  (loop while (next-row)
-        collect (loop with hash = (make-hash-table :test 'equal)
-                      for field across fields
-                      do (setf (gethash (field-name field) hash)
-                               (next-field field))
-                      finally (return hash))))
-
-(defmethod fetch-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor) format)
-  (unless (cursor-declared-p cursor)
-    (error "The cursor is not declared yet."))
+(defmethod fetch-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor))
   (first
    (exec-query (connection-handle conn)
                (format nil "FETCH ~A" (cursor-name cursor))
-               (ecase format
-                 (:plist
-                  'plist-row-reader)
-                 (:alist
-                  'cl-postgres:alist-row-reader)
-                 (:hash-table
-                  'hash-table-row-reader)
-                 (:values
-                  'cl-postgres:list-row-reader)))))
+               'cl-postgres:list-row-reader)))
 
-(defmethod fetch-using-connection ((conn dbd-postgres-connection) (query dbi-query) format)
+(defmethod fetch-using-connection ((conn dbd-postgres-connection) (query dbi-query))
   (declare (ignore conn))
-  (let ((fields (query-fields query))
-        (row (pop (query-results query))))
-    (ecase format
-      (:plist
-       (loop for field in fields
-             for value in row
-             collect (intern field :keyword)
-             collect value))
-      (:alist
-       (loop for field in fields
-             for value in row
-             collect (cons field value)))
-      (:hash-table
-       (let ((hash (make-hash-table :test 'equal)))
-         (loop for field in fields
-               for value in row
-               do (setf (gethash field hash) value))
-         hash))
-      (:values
-       row))))
+  (pop (query-results query)))
 
 (defmethod do-sql ((conn dbd-postgres-connection) sql &optional params)
   (if params

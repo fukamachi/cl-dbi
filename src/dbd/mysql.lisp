@@ -90,33 +90,14 @@
        (setf (query-results query) handle)))
     query))
 
-(defmethod fetch-using-connection ((conn dbd-mysql-connection) query format)
-  (let* ((result (query-results query))
-         (row
-           (if (mysql-result-list-p result)
-               (pop (slot-value result 'result-set))
-               (next-row result)))
-         (fields (if (slot-boundp query 'dbi.driver::fields)
-                     (query-fields query)
-                     (setf (query-fields query)
-                           (mapcar #'first (first (result-set-fields result)))))))
-    (ecase format
-      (:plist
-       (loop for field in fields
-             for value in row
-             collect (intern field :keyword)
-             collect value))
-      (:alist
-       (loop for field in fields
-             for value in row
-             collect (cons field value)))
-      (:hash-table
-       (let ((hash (make-hash-table :test 'equal)))
-         (loop for field in fields
-               for value in row
-               do (setf (gethash field hash) value))
-         hash))
-      (:values row))))
+(defmethod fetch-using-connection ((conn dbd-mysql-connection) query)
+  (let ((result (query-results query)))
+    (unless (slot-boundp query 'dbi.driver::fields)
+      (setf (query-fields query)
+            (mapcar #'first (first (result-set-fields result)))))
+    (if (mysql-result-list-p result)
+        (pop (slot-value result 'result-set))
+        (next-row result))))
 
 (defmethod escape-sql ((conn dbd-mysql-connection) (sql string))
   (escape-string sql :database (connection-handle conn)))

@@ -28,8 +28,6 @@
            #:query-row-count
            #:query-cached-p
            #:dbi-cursor
-           #:cursor-connection
-           #:cursor-sql
            #:cursor-name
            #:cursor-formatter
            #:cursor-declared-p
@@ -122,7 +120,7 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
   "Return a list of direct subclasses for `dbi-driver`."
   (c2mop:class-direct-subclasses (find-class 'dbi-driver)))
 
-(defclass/a dbi-query ()
+(defclass dbi-query-base ()
   ((connection :type dbi-connection
                :initarg :connection
                :initform nil
@@ -130,11 +128,13 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
    (sql :type string
         :initarg :sql
         :accessor query-sql)
-   (prepared :type t
+   (fields :initarg :fields
+           :accessor query-fields)))
+
+(defclass/a dbi-query (dbi-query-base)
+  ((prepared :type t
              :initarg :prepared
              :accessor query-prepared)
-   (fields :initarg :fields
-           :accessor query-fields)
    (results :initarg :results
             :accessor query-results)
    (row-count :type (or integer null)
@@ -146,14 +146,8 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
            :accessor query-cached-p))
   (:documentation "Class that represents a prepared DB query."))
 
-(defclass dbi-cursor ()
-  ((connection :type dbi-connection
-               :initarg :connection
-               :accessor cursor-connection)
-   (sql :type string
-        :initarg :sql
-        :accessor cursor-sql)
-   (name :type string
+(defclass dbi-cursor (dbi-query-base)
+  ((name :type string
          :initform (random-string "cursor")
          :accessor cursor-name)
    (formatter :type function
@@ -191,23 +185,35 @@ This method may be overrided by subclasses."
 
 (defgeneric execute (query &optional params)
   (:documentation "Execute `query` with `params` and return the results.")
-  (:method ((query dbi-query) &optional params)
+  (:method (object &optional params)
     (execute-using-connection
-     (query-connection query)
-     query
-     params))
-  (:method ((cursor dbi-cursor) &optional params)
-    (execute-using-connection
-     (cursor-connection cursor)
-     cursor
+     (query-connection object)
+     object
      params)))
 
 (defgeneric fetch (query &key format)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
-  (:method ((query dbi-query) &key (format *row-format*))
-    (fetch-using-connection (query-connection query) query format))
-  (:method ((cursor dbi-cursor) &key (format *row-format*))
-    (fetch-using-connection (cursor-connection cursor) cursor format)))
+  (:method (object &key (format *row-format*))
+    (let ((values
+            (fetch-using-connection (query-connection object) object))
+          (fields (query-fields object)))
+      (ecase format
+        (:plist
+         (loop for field in fields
+               for value in values
+               collect (intern field :keyword)
+               collect value))
+        (:alist
+         (loop for field in fields
+               for value in values
+               collect (cons field value)))
+        (:hash-table
+         (loop with hash = (make-hash-table :test 'equal)
+               for field in fields
+               for value in values
+               do (setf (gethash field hash) value)
+               finally (return hash)))
+        (:values values)))))
 
 (defgeneric fetch-all (query &key format)
   (:documentation "Fetch all rest rows from `query`.")
@@ -237,8 +243,8 @@ This method may be overrided by subclasses."
                     hash))
                  (:values row))))))
 
-(defgeneric fetch-using-connection (conn query format)
-  (:method ((conn dbi-connection) (query dbi-query) format)
+(defgeneric fetch-using-connection (conn query)
+  (:method ((conn dbi-connection) (query dbi-query))
     (error 'dbi-unimplemented-error
            :method-name 'fetch-using-connection)))
 

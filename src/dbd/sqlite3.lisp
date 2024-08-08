@@ -66,7 +66,7 @@
       ((sqlite3-use-store query)
        (setf (query-results query)
              (loop for count from 0
-                   for row = (fetch-using-connection conn query :values)
+                   for row = (fetch-using-connection conn query)
                    while row
                    collect row into rows
                    finally
@@ -95,29 +95,10 @@
       (sql-log sql params row-count took-usec)
       (values row-count))))
 
-(defmethod fetch-using-connection ((conn dbd-sqlite3-connection) (query dbd-sqlite3-query) format)
+(defmethod fetch-using-connection ((conn dbd-sqlite3-connection) (query dbd-sqlite3-query))
   (declare (ignore conn))
   (if (slot-boundp query 'dbi.driver::results)
-      (let ((row (pop (query-results query)))
-            (fields (query-fields query)))
-        (ecase format
-          (:plist
-           (loop for field in fields
-                 for value in row
-                 collect (intern field :keyword)
-                 collect value))
-          (:alist
-           (loop for field in fields
-                 for value in row
-                 collect (cons field value)))
-          (:hash-table
-           (let ((hash (make-hash-table :test 'equal)))
-             (loop for field in fields
-                   for value in row
-                   do (setf (gethash field hash) value))
-             hash))
-          (:values
-           row)))
+      (pop (query-results query))
       (let ((prepared (query-prepared query)))
         (when (handler-case (step-statement prepared)
                 (sqlite-error (e)
@@ -128,27 +109,9 @@
                             (query-fields query)
                             (setf (query-fields query)
                                   (statement-column-names prepared)))))
-            (ecase format
-              (:plist
-               (loop for column in fields
-                     for i from 0
-                     collect (intern column :keyword)
-                     collect (statement-column-value prepared i)))
-              (:alist
-               (loop for column in fields
-                     for i from 0
-                     collect (cons column (statement-column-value prepared i))))
-              (:hash-table
-               (let ((hash (make-hash-table :test 'equal)))
-                 (loop for column in fields
-                       for i from 0
-                       do (setf (gethash column hash)
-                                (statement-column-value prepared i)))
-                 hash))
-              (:values
-               (loop repeat (length fields)
-                     for i from 0
-                     collect (statement-column-value prepared i)))))))))
+            (loop repeat (length fields)
+                  for i from 0
+                  collect (statement-column-value prepared i)))))))
 
 (defmethod disconnect ((conn dbd-sqlite3-connection))
   (when (slot-boundp (connection-handle conn) 'sqlite::handle)
