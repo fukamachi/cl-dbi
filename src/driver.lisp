@@ -129,7 +129,8 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
         :initarg :sql
         :accessor query-sql)
    (fields :initarg :fields
-           :accessor query-fields)))
+           :accessor query-fields)
+   (result-buffer :initform nil)))
 
 (defclass/a dbi-query (dbi-query-base)
   ((prepared :type t
@@ -191,11 +192,27 @@ This method may be overrided by subclasses."
      object
      params)))
 
-(defgeneric fetch (query &key format)
+(defun fetch-next (object)
+  (with-slots (result-buffer) object
+    (cond
+      (result-buffer
+       (prog1 result-buffer
+         (setf result-buffer nil)))
+      (t
+       (fetch-using-connection (query-connection object) object)))))
+
+(defun peek-next (object)
+  (with-slots (result-buffer) object
+    (or result-buffer
+        (setf result-buffer
+              (fetch-using-connection (query-connection object) object)))))
+
+(defgeneric fetch (query &key format peek)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
-  (:method (object &key (format *row-format*))
-    (let ((values
-            (fetch-using-connection (query-connection object) object))
+  (:method (object &key (format *row-format*) peek)
+    (let ((values (if peek
+                      (peek-next object)
+                      (fetch-next object)))
           (fields (query-fields object)))
       (ecase format
         (:plist
