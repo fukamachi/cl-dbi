@@ -32,6 +32,8 @@
            #:cursor-formatter
            #:cursor-declared-p
            #:make-cursor
+           #:close-cursor
+           #:close-cursor-using-connection
            #:prepare
            #:prepare-cached
            #:execute
@@ -183,6 +185,10 @@ This method may be overrided by subclasses."
     (error 'dbi-unimplemented-error
            :method-name 'make-cursor)))
 
+(defgeneric close-cursor (cursor)
+  (:method ((cursor dbi-cursor))
+    (close-cursor-using-connection (query-connection cursor) cursor)))
+
 (defgeneric execute (query &optional params)
   (:documentation "Execute `query` with `params` and return the results.")
   (:method (object &optional params)
@@ -271,6 +277,11 @@ This method must be implemented in each drivers.")
     (error 'dbi-unimplemented-error
            :method-name 'execute-using-connection)))
 
+(defgeneric close-cursor-using-connection (conn cursor)
+  (:method (conn cursor)
+    (declare (ignore conn cursor))
+    (error 'dbi-unimplemented-error
+           :method-name 'close-cursor-using-connection)))
 
 (defgeneric begin-transaction (conn)
   (:documentation "Start a transaction.")

@@ -133,6 +133,13 @@
                  :connection conn
                  :sql sql))
 
+(defmethod close-cursor-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor))
+  (when (cursor-declared-p cursor)
+    (exec-query (connection-handle conn)
+                (format nil "CLOSE ~A" (cursor-name cursor)))
+    (setf (cursor-declared-p cursor) nil)
+    t))
+
 (defmethod execute-using-connection ((conn dbd-postgres-connection) (cursor dbi-cursor) params)
   (assert (in-transaction conn))
   (with-accessors ((sql query-sql)

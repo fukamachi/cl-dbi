@@ -7,6 +7,7 @@
                 #:do-sql
                 #:with-transaction
                 #:make-cursor
+                #:close-cursor
                 #:execute
                 #:fetch))
 (in-package #:dbd-postgres-test)
@@ -38,8 +39,10 @@
               (make-cursor conn "SELECT * FROM person")))
         (execute cursor)
         (ok (equal (getf (fetch cursor) :|name|) "Woody"))
-        (ok (equal (getf (fetch cursor) :|name|) "Buzz"))))
+        (ok (equal (getf (fetch cursor) :|name|) "Buzz"))
+        (close-cursor cursor)))
     (with-transaction conn
       (let ((cursor (make-cursor conn "SELECT * FROM person WHERE name = 'Trixie'")))
         (execute cursor)
-        (ok (null (fetch cursor)))))))
+        (ok (null (fetch cursor)))
+        (close-cursor cursor)))))
