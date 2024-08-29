@@ -96,6 +96,18 @@ To load "cl-dbi":
 (:CL-DBI)
 ```
 
+cl-dbi will load another system on the fly depending on your database's
+driver:
+
+    :dbd-sqlite3
+    :dbd-mysql
+    :dbd-postgres
+
+You must reference the required one in your system definition if you
+plan to build an executable (and if you plan to run it on a machine
+where Quicklisp is not installed).
+
+
 ## API
 
 ### User-Level API
