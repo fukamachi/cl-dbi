@@ -1,6 +1,6 @@
 (defsystem "dbd-mysql"
   :author "Eitaro Fukamachi"
-  :license "LLGPL"
+  :license "BSD 2-Clause"
   :depends-on ("dbi"
                "cl-mysql")
   :components ((:module "src/dbd"

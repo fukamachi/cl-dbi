@@ -297,4 +297,4 @@ Copyright (c) 2011 Eitaro Fukamachi (e.arrows@gmail.com)
 
 # License
 
-Licensed under the LLGPL License.
+Licensed under the BSD 2-Clause License.

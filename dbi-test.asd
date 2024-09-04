@@ -1,6 +1,6 @@
 (defsystem "dbi-test"
   :author "Eitaro Fukamachi"
-  :license "LLGPL"
+  :license "BSD 2-Clause"
   :depends-on ("dbi"
                "rove"
                "alexandria"

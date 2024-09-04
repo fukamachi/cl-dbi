@@ -1,7 +1,7 @@
 (defsystem "dbi"
   :version "0.11.1"
   :author "Eitaro Fukamachi"
-  :license "LLGPL"
+  :license "BSD 2-Clause"
   :depends-on ("split-sequence"
                "closer-mop"
                "cl-ppcre"
