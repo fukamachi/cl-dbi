@@ -7,6 +7,7 @@
                  #:dbi.logger)
   (:export #:connect
            #:connect-cached
+           #:disconnect-cached-all
            #:with-connection))
 (in-package #:dbi)
 
@@ -46,6 +47,11 @@
             (setf (get-object pool connect-args)
                   (apply #'connect connect-args))
           (cleanup-cache-pool pool)))))
+
+(defun disconnect-cached-all ()
+  (let ((pool *threads-connection-pool*))
+    (cleanup-cache-pool pool :force t))
+  (values))
 
 (defmacro with-autoload-on-missing (&body body)
   (let ((retrying (gensym))
