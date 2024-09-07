@@ -51,5 +51,6 @@
                   :components
                   ((:file "sqlite3")
                    (:file "postgres")
-                   (:file "mysql"))))))
+                   (:file "mysql")))
+                 (:file "dbi"))))
   :perform (test-op (op c) (symbol-call '#:rove '#:run c)))

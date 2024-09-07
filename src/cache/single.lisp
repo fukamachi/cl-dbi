@@ -29,6 +29,17 @@
     (setf (gethash key cache) object)))
 
 ;; Just do nothing since it's single-threaded and the thread is obviously alive.
-(defun cleanup-cache-pool (pool)
+(defun cleanup-cache-pool (pool &key force)
   (declare (ignore pool))
+  (when force
+    (let ((cache (cache-pool-cache pool))
+          (cleanup-fn (cache-pool-cleanup-fn pool)))
+      (when cleanup-fn
+        (maphash (lambda (key conn)
+                   (declare (ignore key))
+                   (when conn
+                     (funcall cleanup-fn conn)))
+                 cache))
+      (setf (cache-pool-cache pool)
+            (make-hash-table :test 'equal))))
   (values))
