@@ -39,6 +39,7 @@
                "dbd-sqlite3"
                "dbd-mysql"
                "dbd-postgres"
+               "dbd-null"
                "rove"
                "closer-mop"
                "alexandria"
@@ -51,6 +52,7 @@
                   :components
                   ((:file "sqlite3")
                    (:file "postgres")
-                   (:file "mysql")))
+                   (:file "mysql")
+                   (:file "null")))
                  (:file "dbi"))))
   :perform (test-op (op c) (symbol-call '#:rove '#:run c)))
