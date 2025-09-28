@@ -14,5 +14,3 @@
 
 (deftest null-driver-tests
   (apply #'dbi.test:run-driver-tests (list :null)))
-
-(rove:run-test 'null-driver-tests)
