@@ -8,6 +8,7 @@
                           #:escape-string)
   (:shadowing-import-from #:dbi.driver
                           #:disconnect
+                          #:release-savepoint
                           #:ping)
   (:import-from #:dbd.mysql.error
                 #:with-error-handler)
@@ -113,6 +114,9 @@
 
 (defmethod rollback ((conn dbd-mysql-connection))
   (do-sql conn "ROLLBACK"))
+
+(defmethod release-savepoint ((conn dbd-mysql-connection) &optional identifier)
+  (do-sql conn (format nil "RELEASE SAVEPOINT ~A" identifier)))
 
 (defmethod ping ((conn dbd-mysql-connection))
   (handler-bind ((mysql-error
