@@ -66,16 +66,20 @@
       ((sqlite3-use-store query)
        (setf (query-results query)
              (loop for count from 0
-                   for row = (fetch-using-connection conn query)
+                   with total-usec = 0
+                   for took-usec = 0
+                   for row = (prog1 (with-took-usec took-usec
+                                      (fetch-using-connection conn query))
+                               (incf total-usec took-usec))
                    while row
                    collect row into rows
                    finally
                    (progn
                      (setf (query-row-count query) count)
-                     (sql-log (query-sql query) params count nil)
+                     (sql-log (query-sql query) params count total-usec)
                      (setf (query-fields query) (statement-column-names prepared))
                      (return rows)))))
-      (t (sql-log (query-sql query) params nil nil)))
+      (t (sql-log (query-sql query) params nil 0)))
     query))
 
 (defmethod do-sql ((conn dbd-sqlite3-connection) (sql string) &optional params)
