@@ -64,6 +64,15 @@
                    "SELECT * FROM kyoto WHERE type = 'cafe'")
             "prepare-sql")))
 
+    (testing "prepare-sql with byte vectors"
+      (let ((query (prepare conn "INSERT INTO test (data) VALUES (?)")))
+        (ok (equal (funcall (query-prepared query) (list (make-array 4 :element-type '(unsigned-byte 8) :initial-contents '(192 123 154 125))))
+                   "INSERT INTO test (data) VALUES (X'C07B9A7D')")
+            "byte vector to hex literal")
+        (ok (equal (funcall (query-prepared query) (list (make-array 0 :element-type '(unsigned-byte 8))))
+                   "INSERT INTO test (data) VALUES (X'')")
+            "empty byte vector")))
+
     (testing "prepare-cached"
       (let ((query3 (prepare-cached conn "SELECT * FROM kyoto WHERE type = ?")))
         (ok (typep query3 'dbi-query))

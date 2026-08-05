@@ -33,11 +33,12 @@
       (funcall (cache-pool-cleanup-fn pool) old-object))
     (setf (gethash key cache) object)))
 
-(defun cleanup-cache-pool (pool)
+(defun cleanup-cache-pool (pool &key force)
   (let ((cleanup-fn (cache-pool-cleanup-fn pool)))
     (bt2:with-lock-held ((cache-pool-lock pool))
       (maphash (lambda (thread cache)
-                 (unless (bt2:thread-alive-p thread)
+                 (when (or force
+                           (not (bt2:thread-alive-p thread)))
                    (when cleanup-fn
                      (maphash (lambda (_ conn)
                                 (declare (ignore _))

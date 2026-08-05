@@ -1,6 +1,6 @@
 (defsystem "dbd-sqlite3"
   :author "Eitaro Fukamachi"
-  :license "LLGPL"
+  :license "BSD 2-Clause"
   :depends-on ("dbi"
                "sqlite"
                "trivial-garbage")

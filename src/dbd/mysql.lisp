@@ -4,8 +4,11 @@
         #:dbi.logger
         #:dbi.utils
         #:cl-mysql)
+  (:shadowing-import-from #:cl-mysql
+                          #:escape-string)
   (:shadowing-import-from #:dbi.driver
                           #:disconnect
+                          #:release-savepoint
                           #:ping)
   (:import-from #:dbd.mysql.error
                 #:with-error-handler)
@@ -56,60 +59,46 @@
     (setf (mysql-use-store query) store)
     query))
 
-(defun result-set-field-names (handle)
-  (mapcar (lambda (field)
-            ;; field = (name column-type)
-            (intern (first field) :keyword))
-          (first (result-set-fields handle))))
-
-(defun fetch-next-row (handle &optional fields)
-  (let ((row (next-row handle))
-        (fields (or fields
-                    (result-set-field-names handle))))
-    (when row
-      (loop for field in fields
-            for value in row
-            append (list field value)))))
-
-(defun fetch-all-rows (handle)
-  (loop with fields = (result-set-field-names handle)
-        for count from 0
-        for row = (fetch-next-row handle fields)
-        while row
-        collect row into rows
-        finally (return (values rows
-                                (if fields
-                                    count
-                                    ;; Return the modified count for modification query.
-                                    (first (process-result-set handle (make-hash-table))))))))
-
 (defmethod execute-using-connection ((conn dbd-mysql-connection) (query dbd-mysql-query) params)
   (let* (took-usec
-         (result
+         (handle
            (with-error-handler conn
              (with-took-usec took-usec
                (query (funcall (query-prepared query) params)
                       :database (connection-handle conn)
                       :store nil)))))
-    (return-or-close (owner-pool result) result)
-    (next-result-set result)
+    (return-or-close (owner-pool handle) handle)
+    (next-result-set handle)
     (cond
       ((mysql-use-store query)
-       (multiple-value-bind (rows count)
-           (fetch-all-rows result)
-         (sql-log (query-sql query) params count took-usec)
-         (setf result (make-mysql-result-list rows count))
-         (setf (query-row-count query) count)))
+       (let ((fields (mapcar #'first (first (result-set-fields handle)))))
+         (multiple-value-bind (rows count)
+             (loop for row = (next-row handle)
+                   for count from 0
+                   while row
+                   collect row into rows
+                   finally
+                      (return (values rows (if fields
+                                               count
+                                               (first (process-result-set handle (make-hash-table)))))))
+           (sql-log (query-sql query) params count took-usec)
+           (setf (query-row-count query) count)
+           (setf (query-fields query) fields)
+           (setf (query-results query)
+                 (make-mysql-result-list rows count)))))
       (t
-       (sql-log (query-sql query) params nil took-usec)))
-    (setf (query-results query) result)
+       (sql-log (query-sql query) params nil took-usec)
+       (setf (query-results query) handle)))
     query))
 
 (defmethod fetch-using-connection ((conn dbd-mysql-connection) query)
   (let ((result (query-results query)))
+    (unless (slot-boundp query 'dbi.driver::fields)
+      (setf (query-fields query)
+            (mapcar #'first (first (result-set-fields result)))))
     (if (mysql-result-list-p result)
         (pop (slot-value result 'result-set))
-        (fetch-next-row result))))
+        (next-row result))))
 
 (defmethod escape-sql ((conn dbd-mysql-connection) (sql string))
   (escape-string sql :database (connection-handle conn)))
@@ -125,6 +114,9 @@
 
 (defmethod rollback ((conn dbd-mysql-connection))
   (do-sql conn "ROLLBACK"))
+
+(defmethod release-savepoint ((conn dbd-mysql-connection) &optional identifier)
+  (do-sql conn (format nil "RELEASE SAVEPOINT ~A" identifier)))
 
 (defmethod ping ((conn dbd-mysql-connection))
   (handler-bind ((mysql-error

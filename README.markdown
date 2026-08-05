@@ -96,6 +96,18 @@ To load "cl-dbi":
 (:CL-DBI)
 ```
 
+cl-dbi will load another system on the fly depending on your database's
+driver:
+
+    :dbd-sqlite3
+    :dbd-mysql
+    :dbd-postgres
+
+You must reference the required one in your system definition if you
+plan to build an executable (and if you plan to run it on a machine
+where Quicklisp is not installed).
+
+
 ## API
 
 ### User-Level API
@@ -181,11 +193,11 @@ All you need is Docker and Docker Compose.
 
 To run all tests, execute this in the shell:
 
-    docker-compose up tests
+    docker compose up tests
 
 ### Running specific driver's unittests
 
-Running tests with docker-compose does not allow you
+Running tests with 'docker compose' does not allow you
 to debug code in SLIME or SLY. To do this, you need
 to start databases as separate containers and to make
 their ports available to the host machine.
@@ -285,4 +297,4 @@ Copyright (c) 2011 Eitaro Fukamachi (e.arrows@gmail.com)
 
 # License
 
-Licensed under the LLGPL License.
+Licensed under the BSD 2-Clause License.

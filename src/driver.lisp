@@ -8,7 +8,8 @@
                 #:dbi-notsupported-error)
   (:import-from #:c2mop
                 #:class-direct-subclasses)
-  (:export #:dbi-driver
+  (:export #:*row-format*
+           #:dbi-driver
            #:dbi-connection
            #:connection-database-name
            #:connection-handle
@@ -22,9 +23,17 @@
            #:query-connection
            #:query-sql
            #:query-prepared
+           #:query-fields
            #:query-results
            #:query-row-count
            #:query-cached-p
+           #:dbi-cursor
+           #:cursor-name
+           #:cursor-formatter
+           #:cursor-declared-p
+           #:make-cursor
+           #:close-cursor
+           #:close-cursor-using-connection
            #:prepare
            #:prepare-cached
            #:execute
@@ -54,6 +63,8 @@
            #:<dbi-connection>
            #:<dbi-query>))
 (in-package #:dbi.driver)
+
+(defvar *row-format* :plist)
 
 (defclass/a dbi-driver () ()
   (:documentation "Base class for DB driver."))
@@ -114,7 +125,7 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
   "Return a list of direct subclasses for `dbi-driver`."
   (c2mop:class-direct-subclasses (find-class 'dbi-driver)))
 
-(defclass/a dbi-query ()
+(defclass dbi-query-base ()
   ((connection :type dbi-connection
                :initarg :connection
                :initform nil
@@ -122,7 +133,11 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
    (sql :type string
         :initarg :sql
         :accessor query-sql)
-   (prepared :type t
+   (fields :initarg :fields
+           :accessor query-fields)))
+
+(defclass/a dbi-query (dbi-query-base)
+  ((prepared :type t
              :initarg :prepared
              :accessor query-prepared)
    (results :initarg :results
@@ -135,6 +150,19 @@ Driver should be named like 'DBD-SOMETHING' for a database 'something'."
            :initform nil
            :accessor query-cached-p))
   (:documentation "Class that represents a prepared DB query."))
+
+(defclass dbi-cursor (dbi-query-base)
+  ((name :type string
+         :initform (random-string "cursor")
+         :accessor cursor-name)
+   (formatter :type function
+              :accessor cursor-formatter)
+   (declared :type boolean
+             :initform nil
+             :accessor cursor-declared-p)))
+
+(defmethod initialize-instance :after ((cursor dbi-cursor) &key sql &allow-other-keys)
+  (setf (slot-value cursor 'formatter) (compile-sql sql)))
 
 (defgeneric prepare (conn sql &key))
 
@@ -154,25 +182,75 @@ This method may be overrided by subclasses."
               (setf (query-cached-p query) t)
               query))))
 
+(defgeneric make-cursor (conn sql &key cursor-class)
+  (:method (conn sql &key cursor-class)
+    (declare (ignore conn sql cursor-class))
+    (error 'dbi-unimplemented-error
+           :method-name 'make-cursor)))
+
+(defgeneric close-cursor (cursor)
+  (:method ((cursor dbi-cursor))
+    (close-cursor-using-connection (query-connection cursor) cursor)))
+
 (defgeneric execute (query &optional params)
   (:documentation "Execute `query` with `params` and return the results.")
-  (:method ((query dbi-query) &optional params)
+  (:method (object &optional params)
     (execute-using-connection
-     (query-connection query)
-     query
+     (query-connection object)
+     object
      params)))
 
-(defgeneric fetch (query)
+(defgeneric fetch (query &key format)
   (:documentation "Fetch the first row from `query` which is returned by `execute`.")
-  (:method ((query dbi-query))
-    (fetch-using-connection (query-connection query) query)))
+  (:method (object &key (format *row-format*))
+    (let ((values
+            (fetch-using-connection (query-connection object) object))
+          (fields (query-fields object)))
+      (ecase format
+        (:plist
+         (loop for field in fields
+               for value in values
+               collect (intern field :keyword)
+               collect value))
+        (:alist
+         (loop for field in fields
+               for value in values
+               collect (cons field value)))
+        (:hash-table
+         (loop with hash = (make-hash-table :test 'equal)
+               for field in fields
+               for value in values
+               do (setf (gethash field hash) value)
+               finally (return hash)))
+        (:values values)))))
 
-(defgeneric fetch-all (query)
+(defgeneric fetch-all (query &key format)
   (:documentation "Fetch all rest rows from `query`.")
-  (:method ((query dbi-query))
-    (loop for result = (fetch query)
-          while result
-          collect result)))
+  (:method ((query dbi-query) &key (format *row-format*))
+    (let* (;; Fetch the first row to ensure 'query-fields' is set.
+           (first-row (fetch query :format :values))
+           (fields (query-fields query))
+           (fields (if (eq format :plist)
+                       (mapcar (lambda (field) (intern field :keyword)) fields)
+                       fields)))
+      (loop for row = first-row then (fetch query :format :values)
+            while row
+            collect
+               (ecase format
+                 (:plist
+                  (loop for key in fields
+                        for val in row
+                        collect key
+                        collect val))
+                 (:alist
+                  (mapcar #'cons fields row))
+                 (:hash-table
+                  (let ((hash (make-hash-table :test 'equal)))
+                    (loop for key in fields
+                          for val in row
+                          do (setf (gethash key hash) val))
+                    hash))
+                 (:values row))))))
 
 (defgeneric fetch-using-connection (conn query)
   (:method ((conn dbi-connection) (query dbi-query))
@@ -202,6 +280,11 @@ This method must be implemented in each drivers.")
     (error 'dbi-unimplemented-error
            :method-name 'execute-using-connection)))
 
+(defgeneric close-cursor-using-connection (conn cursor)
+  (:method (conn cursor)
+    (declare (ignore conn cursor))
+    (error 'dbi-unimplemented-error
+           :method-name 'close-cursor-using-connection)))
 
 (defgeneric begin-transaction (conn)
   (:documentation "Start a transaction.")
@@ -217,9 +300,6 @@ This method must be implemented in each drivers.")
        (setf auto-commit nil)
        (unwind-protect (call-next-method)
          (setf auto-commit saved)))))
-
-(defun generate-random-savepoint ()
-  (format nil "savepoint_~36R" (random (expt 36 #-gcl 8 #+gcl 5))))
 
 (defvar *transaction-state* nil
   "A stack of transaction and savepoint states.")
@@ -238,7 +318,7 @@ This method must be implemented in each drivers.")
 
 (defclass savepoint-state (transaction-state)
   ((identifier :type string
-               :initform (generate-random-savepoint)
+               :initform (random-string "savepoint")
                :reader get-identifier)))
 
 (defun get-transaction-state (conn)
@@ -467,10 +547,21 @@ For example, in case of MySQL and PostgreSQL, backslashes must be escaped by dou
   (:documentation
    "Create a function that takes parameters, binds them into a query and returns SQL as a string.")
   (:method ((conn dbi-connection) (sql string))
-    (labels ((param-to-sql (param)
+    (labels ((octets-to-hex (octets)
+               (let ((hex (make-string (* 2 (length octets)))))
+                 (loop for byte across octets
+                       for i from 0 by 2
+                       for hi = (ash byte -4)
+                       for lo = (logand byte #xf)
+                       do (setf (aref hex i) (char "0123456789ABCDEF" hi)
+                                (aref hex (1+ i)) (char "0123456789ABCDEF" lo)))
+                 hex))
+             (param-to-sql (param)
                (typecase param
                  (string (concatenate 'string "'" (escape-sql conn param) "'"))
                  (null "NULL")
+                 ((vector (unsigned-byte 8))
+                  (concatenate 'string "X'" (octets-to-hex param) "'"))
                  (t (princ-to-string param)))))
       (let ((sql-parts (split-sequence #\? sql)))
         (lambda (params)

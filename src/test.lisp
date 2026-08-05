@@ -142,6 +142,32 @@
     (dbi.error:dbi-notsupported-error ()
       (skip "Not supported"))))
 
+(deftest with-nested-transaction-without-rollback
+  (turn-off-autocommit)
+
+  (handler-case
+      (flet ((get-row-number ()
+               (getf (first
+                      (execute-and-fetch-all *db* "SELECT COUNT(*) as cnt FROM person"))
+                     :|cnt|)))
+        (with-transaction *db*
+          (do-sql *db* "DROP TABLE IF EXISTS person")
+          (do-sql *db* "CREATE TABLE person (id INTEGER PRIMARY KEY, name VARCHAR(24) NOT NULL)")
+
+          (do-sql *db* "INSERT INTO person (id, name) VALUES (1, 'foo')")
+          (with-transaction *db*
+            (do-sql *db* "INSERT INTO person (id, name) VALUES (2, 'bar')")
+            ;;
+            (ok (= (get-row-number) 2)
+                "At this stage there should be two items in the database"))
+            ;; exit transaction normally
+
+          (ok (= (get-row-number) 2)
+              "There are still two records")))
+
+    (dbi.error:dbi-notsupported-error ()
+      (skip "Not supported"))))
+
 (deftest duplicate-rollback
   (turn-off-autocommit)
   (handler-case

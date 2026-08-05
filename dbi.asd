@@ -1,9 +1,10 @@
 (defsystem "dbi"
-  :version "0.9.5"
+  :version "0.11.1"
   :author "Eitaro Fukamachi"
-  :license "LLGPL"
+  :license "BSD 2-Clause"
   :depends-on ("split-sequence"
                "closer-mop"
+               "cl-ppcre"
                (:feature #1=(:or :abcl
                                  (:and :allegro :multiprocessing)
                                  (:and :clasp :threads)
@@ -38,6 +39,7 @@
                "dbd-sqlite3"
                "dbd-mysql"
                "dbd-postgres"
+               "dbd-null"
                "rove"
                "closer-mop"
                "alexandria"
@@ -50,5 +52,7 @@
                   :components
                   ((:file "sqlite3")
                    (:file "postgres")
-                   (:file "mysql"))))))
+                   (:file "mysql")
+                   (:file "null")))
+                 (:file "dbi"))))
   :perform (test-op (op c) (symbol-call '#:rove '#:run c)))

@@ -16,4 +16,4 @@ jobs:
         env:
           LISP: ${{ matrix.lisp }}
         run: |
-          docker-compose up --exit-code-from tests tests
+          docker compose up --exit-code-from tests tests

@@ -1,108 +1,13 @@
-(defpackage #:dbi
-  (:use #:cl
-        #:dbi.cache
-        #:dbi.error)
+(uiop:define-package #:dbi
   (:nicknames #:cl-dbi)
-  (:import-from #:dbi.driver
-                #:list-all-drivers
-                #:find-driver
-                #:connection-driver-type
-                #:connection-database-name
-                #:connection-established-at
-                #:make-connection
-                #:disconnect
-                #:prepare
-                #:prepare-cached
-                #:query-prepared
-                #:query-connection
-                #:query-sql
-                #:query-cached-p
-                #:execute
-                #:fetch
-                #:fetch-all
-                #:do-sql
-                #:clear-transaction-state
-                #:end-transaction
-                #:start-transaction
-                #:begin-transaction
-                #:in-transaction
-                #:commit
-                #:rollback
-                #:savepoint
-                #:rollback-savepoint
-                #:release-savepoint
-                #:with-savepoint
-                #:with-transaction
-                #:ping
-                #:row-count
-                #:transaction-done-condition
-                #:free-query-resources)
-  (:import-from #:dbi.logger
-                #:*sql-execution-hooks*
-                #:simple-sql-logger)
-  (:export #:list-all-drivers
-           #:find-driver
-           #:connection-driver-type
-           #:connection-database-name
-           #:disconnect
-           #:prepare
-           #:prepare-cached
-           #:query-prepared
-           #:query-connection
-           #:query-sql
-           #:query-cached-p
-           #:execute
-           #:fetch
-           #:fetch-all
-           #:do-sql
-           #:clear-transaction-state
-           #:start-transaction
-           #:end-transaction
-           #:begin-transaction
-           #:in-transaction
-           #:commit
-           #:rollback
-           #:savepoint
-           #:rollback-savepoint
-           #:release-savepoint
-           #:with-savepoint
-           #:with-transaction
-           #:ping
-           #:row-count
-           #:free-query-resources
-
-           #:dbi-error
-           #:dbi-warning
-           #:dbi-interface-error
-           #:dbi-unimplemented-error
-           #:dbi-database-error
-           #:dbi-data-error
-           #:dbi-operational-error
-           #:dbi-integrity-error
-           #:dbi-internal-error
-           #:dbi-programming-error
-           #:dbi-notsupported-error
-           #:<dbi-error>
-           #:<dbi-warning>
-           #:<dbi-interface-error>
-           #:<dbi-unimplemented-error>
-           #:<dbi-database-error>
-           #:<dbi-data-error>
-           #:<dbi-operational-error>
-           #:<dbi-integrity-error>
-           #:<dbi-internal-error>
-           #:<dbi-programming-error>
-           #:<dbi-notsupported-error>
-           #:<dbi-already-commited-error>
-           #:<dbi-already-rolled-back-error>
-           #:database-error-message
-           #:database-error-code
-
-           ;; logger
-           #:*sql-execution-hooks*
-           #:simple-sql-logger)
+  (:use #:cl
+        #:dbi.cache)
+  (:use-reexport #:dbi.error
+                 #:dbi.driver
+                 #:dbi.logger)
   (:export #:connect
            #:connect-cached
+           #:disconnect-cached-all
            #:with-connection))
 (in-package #:dbi)
 
@@ -142,6 +47,11 @@
             (setf (get-object pool connect-args)
                   (apply #'connect connect-args))
           (cleanup-cache-pool pool)))))
+
+(defun disconnect-cached-all ()
+  (let ((pool *threads-connection-pool*))
+    (cleanup-cache-pool pool :force t))
+  (values))
 
 (defmacro with-autoload-on-missing (&body body)
   (let ((retrying (gensym))
