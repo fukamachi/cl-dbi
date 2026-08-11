@@ -361,10 +361,10 @@ This method must be implemented in each drivers.")
                     *transaction-state*))
             ,ok)
 
-       (savepoint ,conn ,ident-var)+
+       (savepoint ,conn ,ident-var)
        (unwind-protect
             (multiple-value-prog1
-                (progn ,@body)`<
+                (progn ,@body)
               (setf ,ok t))
          (when (eql (get-state ,state-var)
                     :in-progress)
@@ -430,7 +430,7 @@ This method must be implemented in each drivers.")
 (defgeneric commit (conn)
   (:documentation "Commit changes and end the current transaction.")
   (:method ((conn dbi-connection))
-    (declare (ignore conn state))
+    (declare (ignore conn))
     (error 'dbi-notsupported-error
            :method-name 'commit))
   (:method :around ((conn dbi-connection))
