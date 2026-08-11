@@ -241,6 +241,7 @@
   (do-sql conn "BEGIN"))
 
 (defmethod commit ((conn dbd-postgres-connection))
+  (declare (ignore state))
   (do-sql conn "COMMIT"))
 
 (defmethod rollback ((conn dbd-postgres-connection))
