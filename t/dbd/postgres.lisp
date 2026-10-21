@@ -46,3 +46,22 @@
         (execute cursor)
         (ok (null (fetch cursor)))
         (close-cursor cursor)))))
+
+(deftest postgres-ping-does-not-leak-prepared-statements
+  (with-connection #.`(conn :postgres ,@*connect-args*)
+    (flet ((prepared-count ()
+             (getf (fetch (execute (dbi:prepare conn "SELECT count(*) AS n FROM pg_prepared_statements")))
+                   :|n|)))
+      (let ((before (prepared-count)))
+        (dotimes (i 200) (ok (dbi:ping conn)))
+        (ok (< (- (prepared-count) before) 10))))))
+
+(deftest postgres-unreferenced-queries-are-collected
+  (with-connection #.`(conn :postgres ,@*connect-args*)
+    (let ((pointers (loop repeat 50
+                          collect (let ((query (dbi:prepare conn "SELECT 1")))
+                                    (dbi:fetch-all (execute query))
+                                    (trivial-garbage:make-weak-pointer query)))))
+      (trivial-garbage:gc :full t)
+      (trivial-garbage:gc :full t)
+      (ok (< (count-if #'trivial-garbage:weak-pointer-value pointers) 10)))))

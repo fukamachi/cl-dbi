@@ -77,12 +77,16 @@
    :fields nil))
 
 (defun set-finalizer (conn query)
+  ;; The finalizer must not reference QUERY: SBCL keeps finalizer functions
+  ;; reachable, so a closure over QUERY keeps it alive forever, the finalizer
+  ;; never runs, and the server-side statement is never deallocated.
+  ;; free-query-resources already cancels the finalization.
   (let ((name (slot-value query 'name)))
     (finalize query
               (lambda ()
-                (when (and (database-open-p (connection-handle conn))
-                           (not (query-freed-p query)))
-                  (push name (slot-value conn '%deallocation-queue)))))))
+                (when (database-open-p (connection-handle conn))
+                  #+sbcl (sb-ext:atomic-push name (slot-value conn '%deallocation-queue))
+                  #-sbcl (push name (slot-value conn '%deallocation-queue)))))))
 
 (defun make-query (conn sql)
   (let* ((conn-handle (connection-handle conn))
@@ -251,8 +255,10 @@
     (handler-case
         (and (database-open-p handle)
              (progn
+               ;; The unnamed statement is replaced by the next Parse; a named
+               ;; one per call would accumulate on the server.
                (cl-postgres::send-parse (cl-postgres::connection-socket handle)
-                                        (random-string "ping")
+                                        ""
                                         ""
                                         nil
                                         nil)
